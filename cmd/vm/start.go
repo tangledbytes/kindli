@@ -39,7 +39,7 @@ var StartCmd = &cobra.Command{
 
 NOTE: VM will be created using lima`,
 	Run: func(cmd *cobra.Command, args []string) {
-		utils.ExitIfNotNil(vm.Start(createOverrides(), true))
+		utils.ExitIfNotNil(RunStart())
 	},
 }
 
@@ -48,6 +48,10 @@ func init() {
 	StartCmd.Flags().StringVar(&mem, "mem", "8GiB", "specify memory to be assigned to VM")
 	StartCmd.Flags().StringVar(&disk, "disk", "100GiB", "specify disk space assigned to the VM")
 	StartCmd.Flags().StringSliceVar(&mounts, "mount", nil, "specify mounts in form of <PATH>:rw to make the mount available for read/write or in form of <PATH>:ro ti make the mount available only for reading")
+}
+
+func RunStart() error {
+	return vm.Start(createOverrides(), true)
 }
 
 func createOverrides() map[string]interface{} {

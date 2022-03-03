@@ -28,13 +28,19 @@ var InstallCmd = &cobra.Command{
 	Short:   "Install missing prequisites",
 	Aliases: []string{"i"},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := install(); err != nil {
-			log.Error("❌ Failed to satisify prequisites")
-			return
-		}
-
-		log.Info("🚀 All prequisites satisified")
+		RunInstall()
 	},
+}
+
+func RunInstall() error {
+	if err := install(); err != nil {
+		log.Error("❌ Failed to satisify prequisites")
+		return err
+	}
+
+	log.Info("🚀 All prequisites satisified")
+
+	return nil
 }
 
 func install() error {

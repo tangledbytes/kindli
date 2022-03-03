@@ -26,6 +26,10 @@ var RestartCmd = &cobra.Command{
 	Use:   "restart",
 	Short: "Restart Kindli VM",
 	Run: func(cmd *cobra.Command, args []string) {
-		utils.ExitIfNotNil(vm.Restart())
+		utils.ExitIfNotNil(RunRestart())
 	},
+}
+
+func RunRestart() error {
+	return vm.Restart()
 }

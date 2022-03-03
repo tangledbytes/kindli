@@ -26,6 +26,10 @@ var SetupCmd = &cobra.Command{
 	Use:   "setup",
 	Short: "setup e2e networking with cluster",
 	Run: func(cmd *cobra.Command, args []string) {
-		utils.ExitIfNotNil(networking.Setup())
+		utils.ExitIfNotNil(RunSetup())
 	},
+}
+
+func RunSetup() error {
+	return networking.Setup()
 }

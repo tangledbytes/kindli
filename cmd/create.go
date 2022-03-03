@@ -41,42 +41,7 @@ var CreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a new kind cluster",
 	Run: func(cmd *cobra.Command, args []string) {
-		// Create docker context if it doesn't already exists
-		ctxExists, err := docker.ExistsContext("kindli")
-		utils.ExitIfNotNil(err)
-
-		if !ctxExists {
-			utils.ExitIfNotNil(docker.CreateContext("kindli", fmt.Sprintf("host=unix://%s", filepath.Join(config.Dir(), "docker.sock"))))
-		}
-
-		// Switch default docker context to newly created docker context
-		utils.ExitIfNotNil(docker.UseContext("kindli"))
-
-		// Create the kind cluster
-		utils.ExitIfNotNil(kind.Create(cfg, kind.CreateConfig{
-			DockerRegistry: !skipDockerRegistry,
-			QuayRegistry:   !skipQuayRegistry,
-			GCRRegistry:    !skipGCRRegistry,
-			Name:           name,
-		}))
-
-		// Setup all of the registries -- Despite the flags
-		for _, reg := range registry.Knowns() {
-			isRunning, err := reg.IsRunning()
-			utils.ExitIfNotNil(err)
-
-			if isRunning {
-				continue
-			}
-
-			path := fmt.Sprintf("/tmp/lima/%s", reg.Name)
-
-			utils.ExitIfNotNil(os.MkdirAll(path, 0777))
-
-			utils.ExitIfNotNil(reg.Create(path))
-
-			utils.ExitIfNotNil(docker.NetworkConnect("kind", reg.Name))
-		}
+		utils.ExitIfNotNil(RunCreate())
 	},
 }
 
@@ -86,4 +51,67 @@ func init() {
 	CreateCmd.Flags().BoolVar(&skipDockerRegistry, "skip-registry-docker", false, "skip installing docker registry")
 	CreateCmd.Flags().BoolVar(&skipGCRRegistry, "skip-registry-gcr", false, "skip installing GCR registry")
 	CreateCmd.Flags().BoolVar(&skipQuayRegistry, "skip-registry-quay", false, "skip installing Quay registry")
+}
+
+func RunCreate() error {
+	// Create docker context if it doesn't already exists
+	ctxExists, err := docker.ExistsContext("kindli")
+	if err != nil {
+		return err
+	}
+
+	if !ctxExists {
+		err := docker.CreateContext("kindli", fmt.Sprintf("host=unix://%s", filepath.Join(config.Dir(), "docker.sock")))
+		if err != nil {
+			return err
+		}
+	}
+
+	// Switch default docker context to newly created docker context
+	err = docker.UseContext("kindli")
+	if err != nil {
+		return err
+	}
+
+	// Create the kind cluster
+	err = kind.Create(cfg, kind.CreateConfig{
+		DockerRegistry: !skipDockerRegistry,
+		QuayRegistry:   !skipQuayRegistry,
+		GCRRegistry:    !skipGCRRegistry,
+		Name:           name,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Setup all of the registries -- Despite the flags
+	for _, reg := range registry.Knowns() {
+		isRunning, err := reg.IsRunning()
+		if err != nil {
+			return err
+		}
+
+		if isRunning {
+			continue
+		}
+
+		path := fmt.Sprintf("/tmp/lima/%s", reg.Name)
+
+		err = os.MkdirAll(path, 0777)
+		if err != nil {
+			return err
+		}
+
+		err = reg.Create(path)
+		if err != nil {
+			return err
+		}
+
+		docker.NetworkConnect("kind", reg.Name)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
