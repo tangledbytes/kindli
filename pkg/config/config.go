@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,6 +28,14 @@ func SetupDir() {
 	configDir = filepath.Join(home, ".kindli")
 
 	utils.ExitIfNotNil(os.MkdirAll(configDir, 0777))
+}
+
+func CleanupDir() error {
+	if err := os.RemoveAll(configDir); err != nil {
+		return fmt.Errorf("failed to cleanup data directory: %s", err)
+	}
+
+	return nil
 }
 
 // Dir returns path to the config directory

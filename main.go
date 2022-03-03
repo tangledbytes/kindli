@@ -38,6 +38,4 @@ func init() {
 
 func main() {
 	cmd.Execute()
-
-	store.Flush()
 }

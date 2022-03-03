@@ -47,5 +47,6 @@ func init() {
 		CreateCmd,
 		DeleteCmd,
 		InitCmd,
+		PruneCmd,
 	)
 }

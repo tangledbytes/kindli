@@ -29,3 +29,7 @@ var DeleteCmd = &cobra.Command{
 		utils.ExitIfNotNil(vm.Delete())
 	},
 }
+
+func RunDelete() error {
+	return vm.Delete()
+}

@@ -13,23 +13,33 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package vm
+
+package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/utkarsh-pro/kindli/cmd/vm"
+	"github.com/utkarsh-pro/kindli/pkg/config"
 	"github.com/utkarsh-pro/kindli/pkg/utils"
-	"github.com/utkarsh-pro/kindli/pkg/vm"
 )
 
-// StopCmd represents the preq command
-var StopCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "Stop running Kindli VM",
-	Run: func(cmd *cobra.Command, args []string) {
-		utils.ExitIfNotNil(vm.Stop())
-	},
-}
+var PruneCmd = &cobra.Command{
+	Use:   "prune",
+	Short: "prune kindli will cleanup kindli",
+	Long: `prune will prune kindli
 
-func RunStop() error {
-	return vm.Stop()
+Prune process will perform the following operations:
+1. Stop the running VM
+2. Delete the VM
+3. Cleanup the ~/.kindli directory`,
+	Run: func(cmd *cobra.Command, args []string) {
+		// Stop the running VM
+		utils.ExitIfNotNil(vm.RunStop())
+
+		// Delete the VM
+		utils.ExitIfNotNil(vm.RunDelete())
+
+		// Cleanup dirs
+		utils.ExitIfNotNil(config.CleanupDir())
+	},
 }
