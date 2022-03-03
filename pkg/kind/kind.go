@@ -29,6 +29,7 @@ type CreateConfig struct {
 	DockerRegistry bool
 	QuayRegistry   bool
 	GCRRegistry    bool
+	Name           string
 }
 
 func DefaultCreateConfig() CreateConfig {
@@ -50,11 +51,11 @@ func Create(cfgPath string, cfg CreateConfig) error {
 	// Load user's kind config
 	userKindCfg, err := loadUserKindConfig(cfgPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read user config: %s", err)
 	}
 
 	// Get the name of the user's kind config => Also a sanity test for the config
-	name, err := getUserKindCfgName(userKindCfg)
+	name, err := getUserKindCfgName(userKindCfg, cfg.Name)
 	if err != nil {
 		return err
 	}
@@ -163,10 +164,11 @@ func Exists(name string) bool {
 	return exists
 }
 
-func getUserKindCfgName(userKindCfg map[string]interface{}) (string, error) {
+func getUserKindCfgName(userKindCfg map[string]interface{}, customName string) (string, error) {
 	name, ok := utils.MapGet(userKindCfg, "name")
 	if !ok {
-		return "kindli", nil
+		userKindCfg["name"] = customName
+		return customName, nil
 	}
 
 	nameStr, ok := name.(string)

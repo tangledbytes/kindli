@@ -30,6 +30,7 @@ import (
 
 var (
 	cfg                string
+	name               string
 	skipDockerRegistry bool
 	skipQuayRegistry   bool
 	skipGCRRegistry    bool
@@ -51,6 +52,14 @@ var CreateCmd = &cobra.Command{
 		// Switch default docker context to newly created docker context
 		utils.ExitIfNotNil(docker.UseContext("kindli"))
 
+		// Create the kind cluster
+		utils.ExitIfNotNil(kind.Create(cfg, kind.CreateConfig{
+			DockerRegistry: !skipDockerRegistry,
+			QuayRegistry:   !skipQuayRegistry,
+			GCRRegistry:    !skipGCRRegistry,
+			Name:           name,
+		}))
+
 		// Setup all of the registries -- Despite the flags
 		for _, reg := range registry.Knowns() {
 			isRunning, err := reg.IsRunning()
@@ -65,19 +74,15 @@ var CreateCmd = &cobra.Command{
 			utils.ExitIfNotNil(os.MkdirAll(path, 0777))
 
 			utils.ExitIfNotNil(reg.Create(path))
-		}
 
-		// Create the kind cluster
-		utils.ExitIfNotNil(kind.Create(cfg, kind.CreateConfig{
-			DockerRegistry: !skipDockerRegistry,
-			QuayRegistry:   !skipQuayRegistry,
-			GCRRegistry:    !skipGCRRegistry,
-		}))
+			utils.ExitIfNotNil(docker.NetworkConnect("kind", reg.Name))
+		}
 	},
 }
 
 func init() {
 	CreateCmd.Flags().StringVarP(&cfg, "config", "c", "", "kind configuration")
+	CreateCmd.Flags().StringVar(&name, "name", "", "kind cluster name")
 	CreateCmd.Flags().BoolVar(&skipDockerRegistry, "skip-registry-docker", false, "skip installing docker registry")
 	CreateCmd.Flags().BoolVar(&skipGCRRegistry, "skip-registry-gcr", false, "skip installing GCR registry")
 	CreateCmd.Flags().BoolVar(&skipQuayRegistry, "skip-registry-quay", false, "skip installing Quay registry")
