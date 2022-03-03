@@ -13,36 +13,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+
+package network
 
 import (
-	"os"
-
 	"github.com/spf13/cobra"
-	"github.com/utkarsh-pro/kindli/cmd/network"
-	"github.com/utkarsh-pro/kindli/cmd/preq"
-	"github.com/utkarsh-pro/kindli/cmd/vm"
+	"github.com/utkarsh-pro/kindli/pkg/networking"
+	"github.com/utkarsh-pro/kindli/pkg/utils"
 )
 
-// RootCmd represents the base command when called without any subcommands
-var RootCmd = &cobra.Command{
-	Use:   "kindli",
-	Short: "Kindli lets users create upto 100 kind clusters in a Linux based virtual machine",
-}
-
-func Execute() {
-	err := RootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
-}
-
-func init() {
-	RootCmd.AddCommand(
-		preq.PreqCmd,
-		vm.VMCmd,
-		network.NetworkCmd,
-		CreateCmd,
-		DeleteCmd,
-	)
+var SetupCmd = &cobra.Command{
+	Use:   "setup",
+	Short: "setup e2e networking with cluster",
+	Run: func(cmd *cobra.Command, args []string) {
+		utils.ExitIfNotNil(networking.Setup())
+	},
 }

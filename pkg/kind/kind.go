@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/utkarsh-pro/kindli/pkg/config"
+	"github.com/utkarsh-pro/kindli/pkg/metallb"
 	"github.com/utkarsh-pro/kindli/pkg/registry"
 	"github.com/utkarsh-pro/kindli/pkg/sh"
 	"github.com/utkarsh-pro/kindli/pkg/store"
@@ -18,8 +19,9 @@ import (
 )
 
 var (
-	instancesDirName = "kind"
-	instanceDirPath  = ""
+	instancesDirName    = "kind"
+	instanceDirPath     = ""
+	defaultInstanceName = "kindli"
 
 	//go:embed kind.template
 	kindTemplate string
@@ -103,10 +105,16 @@ func Create(cfgPath string, cfg CreateConfig) error {
 	// Save the new instance in the store
 	store.Set(
 		map[string]interface{}{
-			"path": newPath,
+			"path":       newPath,
+			"instanceID": instance,
 		},
 		name,
 	)
+
+	// Create metallb for the kind cluster
+	if err := metallb.Install(name); err != nil {
+		return fmt.Errorf("failed to create metallb config for the kind cluste: %s", err)
+	}
 
 	return nil
 }
@@ -167,6 +175,10 @@ func Exists(name string) bool {
 func getUserKindCfgName(userKindCfg map[string]interface{}, customName string) (string, error) {
 	name, ok := utils.MapGet(userKindCfg, "name")
 	if !ok {
+		if customName == "" {
+			customName = defaultInstanceName
+		}
+
 		userKindCfg["name"] = customName
 		return customName, nil
 	}

@@ -2,10 +2,12 @@ package store
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
 	"github.com/utkarsh-pro/kindli/pkg/config"
 	"github.com/utkarsh-pro/kindli/pkg/utils"
 )
@@ -26,7 +28,7 @@ func Load() {
 
 	storePath = filepath.Join(config.Dir(), storeFile)
 
-	file, err := os.OpenFile(storePath, os.O_RDWR|os.O_CREATE, 0660)
+	file, err := os.OpenFile(storePath, os.O_RDONLY|os.O_CREATE, 0660)
 	utils.ExitIfNotNil(err)
 	defer file.Close()
 
@@ -43,6 +45,9 @@ func Load() {
 // Set sets value to in memory store
 func Set(value interface{}, key ...string) {
 	utils.MapSet(_store, value, key...)
+	if err := writeFS(); err != nil {
+		logrus.Warn("failed to flush data to filesystem")
+	}
 }
 
 // Get gets the value from the in memory store
@@ -55,11 +60,22 @@ func DeleteTop(key string) {
 	delete(_store, key)
 }
 
-// Flush writes the store data to the filesystem
-func Flush() {
-	file, err := os.OpenFile(storePath, os.O_RDWR|os.O_CREATE, 0660)
-	utils.ExitIfNotNil(err)
+func writeFS() error {
+	file, err := os.Create(storePath)
+	if err != nil {
+		return fmt.Errorf("failed to write FS: %s", err)
+	}
+
 	defer file.Close()
 
-	utils.ExitIfNotNil(json.NewEncoder(file).Encode(_store))
+	if err := json.NewEncoder(file).Encode(_store); err != nil {
+		return fmt.Errorf("failed to write FS: %s", err)
+	}
+
+	return nil
+}
+
+// Flush writes the store data to the filesystem
+func Flush() {
+	utils.ExitIfNotNil(writeFS())
 }

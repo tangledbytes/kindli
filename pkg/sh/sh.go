@@ -29,5 +29,5 @@ func RunIO(scmd string) ([]byte, error) {
 	logrus.Debug("Running: ", scmd)
 	cmds := []string{"-c", scmd}
 
-	return exec.Command("bash", cmds...).CombinedOutput()
+	return exec.Command("bash", cmds...).Output()
 }

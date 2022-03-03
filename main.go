@@ -16,11 +16,10 @@ limitations under the License.
 package main
 
 import (
-	"os"
-
 	"github.com/mattn/go-colorable"
 	"github.com/sirupsen/logrus"
 	"github.com/utkarsh-pro/kindli/cmd"
+	"github.com/utkarsh-pro/kindli/pkg/config"
 	"github.com/utkarsh-pro/kindli/pkg/store"
 )
 
@@ -32,8 +31,9 @@ func init() {
 	// Load the store
 	store.Load()
 
-	// Unset overrides
-	os.Unsetenv("DOCKER_HOST")
+	// Configuration setup
+	config.CleanEnv()
+	config.Logger()
 }
 
 func main() {
