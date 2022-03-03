@@ -1,0 +1,47 @@
+kind: Cluster
+apiVersion: {{ or .apiVersion "kind.x-k8s.io/v1alpha4" }}
+name: {{ or .name "kindli" }}
+{{- if .nodes }}
+nodes:
+{{ .nodes -}}
+{{- end}}
+networking:
+  serviceSubnet: {{.networking.serviceSubnet}}
+  podSubnet: {{.networking.podSubnet}}
+{{- if .networking.ipFamily }}
+  ipFamily: {{.networking.ipFamily}}
+{{- end }}
+{{- if .networking.apiServerAddress }}
+  apiServerAddress: {{.network.apiServerAddress}}
+{{- end }}
+{{- if .networking.apiServerPort }}
+  apiServerPort: {{.network.apiServerPort}}
+{{- end }}
+{{- if .networking.disableDefaultCNI }}
+  disableDefaultCNI: {{.network.disableDefaultCNI}}
+{{- end }}
+{{- if .networking.kubeProxyMode }}
+  kubeProxyMode: {{.network.kubeProxyMode}}
+{{- end }}
+{{- if .registries }}
+containerdConfigPatches:
+- |-
+{{- if .registries.docker }}
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+    endpoint = ["http://{{.registries.docker}}"]
+  [plugins."io.containerd.grpc.v1.cri".registry.configs."docker.io".tls]
+    insecure_skip_verify = true
+{{- end}}
+{{- if .registries.quay }}
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."quay.io"]
+    endpoint = ["http://{{.registries.quay}}"]
+  [plugins."io.containerd.grpc.v1.cri".registry.configs."quay.io".tls]
+    insecure_skip_verify = true
+{{- end}}
+{{- if .registries.gcr }}
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."gcr.io"]
+    endpoint = ["http://{{.registries.gcr}}"]
+  [plugins."io.containerd.grpc.v1.cri".registry.configs."gcr.io".tls]
+    insecure_skip_verify = true
+{{- end}}
+{{- end}}

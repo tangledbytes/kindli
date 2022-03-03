@@ -1,0 +1,55 @@
+images:
+  - location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-amd64.img"
+    arch: "x86_64"
+  - location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-arm64.img"
+    arch: "aarch64"
+
+cpus: {{or .CPU 4}}
+memory: "{{or .Memory "16GiB"}}"
+disk: "{{or .Disk "100GiB"}}"
+
+mounts:
+  - location: "/tmp/lima"
+    writable: true
+{{- range $index, $element := .Mounts}}
+  - location: "{{$element.location}}"
+    writable: {{$element.writable}}
+{{- end}}
+
+ssh:
+  localPort: 60006
+  loadDotSSHPubKeys: true
+containerd:
+  system: false
+  user: false
+
+provision:
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      # command -v docker >/dev/null 2>&1 && exit 0
+      export DEBIAN_FRONTEND=noninteractive
+      # https://kind.sigs.k8s.io/docs/user/known-issues/#pod-errors-due-to-too-many-open-files
+      sysctl fs.inotify.max_user_watches=524288
+      sysctl fs.inotify.max_user_instances=512
+      curl -fsSL https://get.docker.com | sh
+      apt-get install -y net-tools traceroute arping jq
+      groupadd docker || true
+      usermod -aG docker {{.user}}
+      
+probes:
+  - script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      if ! timeout 30s bash -c "until command -v docker >/dev/null 2>&1; do sleep 3; done"; then
+        echo >&2 "Docker is not installed yet"
+        exit 1
+      fi
+    hint: See "/var/log/cloud-init-output.log". in the guest
+portForwards:
+  - guestSocket: "/run/docker.sock"
+    hostSocket: "{{"{{.Home}}"}}/.kindli/docker.sock"
+
+networks:
+  - lima: shared
