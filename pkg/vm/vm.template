@@ -7,6 +7,7 @@ images:
 cpus: {{or .CPU 4}}
 memory: "{{or .Memory "16GiB"}}"
 disk: "{{or .Disk "100GiB"}}"
+arch: {{or .Arch "default"}}
 
 mounts:
   - location: "/tmp/lima"

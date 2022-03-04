@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -32,7 +31,6 @@ var RootCmd = &cobra.Command{
 }
 
 func Execute() {
-	fmt.Println(os.Args)
 	err := RootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
