@@ -22,7 +22,7 @@ ssh:
   loadDotSSHPubKeys: true
 containerd:
   system: false
-  user: false
+  user: true
 
 provision:
   - mode: system
@@ -38,7 +38,8 @@ provision:
       apt-get install -y net-tools traceroute arping jq
       groupadd docker || true
       usermod -aG docker {{.user}}
-      
+
+      nerdctl run --privileged --rm tonistiigi/binfmt --install all
 probes:
   - script: |
       #!/bin/bash
