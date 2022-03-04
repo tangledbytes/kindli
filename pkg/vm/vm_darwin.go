@@ -94,6 +94,15 @@ func Restart() error {
 	return Start(nil, true)
 }
 
+func Status() (string, error) {
+	resp, err := sh.RunIO("limactl ls | awk '/NAME/ || /kindli/ {print $0}'")
+	if err != nil {
+		return "", fmt.Errorf("failed to get status of VM: %s", err)
+	}
+
+	return string(resp), nil
+}
+
 func createLimaVMConfig(overrides map[string]interface{}) error {
 	u, err := user.Current()
 	if err != nil {

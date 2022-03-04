@@ -16,20 +16,29 @@ limitations under the License.
 package vm
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/utkarsh-pro/kindli/pkg/utils"
 	"github.com/utkarsh-pro/kindli/pkg/vm"
 )
 
-// StopCmd represents the preq command
-var StopCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "Stop running Kindli VM",
+// StatusCmd represents the status command
+var StatusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Status of Kindli VM",
 	Run: func(cmd *cobra.Command, args []string) {
-		utils.ExitIfNotNil(RunStop())
+		utils.ExitIfNotNil(RunStatus())
 	},
 }
 
-func RunStop() error {
-	return vm.Stop()
+func RunStatus() error {
+	status, err := vm.Status()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(status)
+
+	return nil
 }

@@ -31,5 +31,6 @@ func init() {
 		StopCmd,
 		DeleteCmd,
 		RestartCmd,
+		StatusCmd,
 	)
 }
