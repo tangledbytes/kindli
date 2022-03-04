@@ -17,21 +17,19 @@ package vm
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/utkarsh-pro/kindli/pkg/utils"
+	"github.com/utkarsh-pro/kindli/pkg/vm"
 )
 
-// VMCmd represents the preq command
-var VMCmd = &cobra.Command{
-	Use:   "vm",
-	Short: "Commands for managing lifecycle of kindli virtual machine",
+// ShellCmd represents the shell command
+var ShellCmd = &cobra.Command{
+	Use:   "shell",
+	Short: "SSH into the Kindli VM",
+	Run: func(cmd *cobra.Command, args []string) {
+		utils.ExitIfNotNil(RunShell())
+	},
 }
 
-func init() {
-	VMCmd.AddCommand(
-		StartCmd,
-		StopCmd,
-		DeleteCmd,
-		RestartCmd,
-		StatusCmd,
-		ShellCmd,
-	)
+func RunShell() error {
+	return vm.Shell()
 }

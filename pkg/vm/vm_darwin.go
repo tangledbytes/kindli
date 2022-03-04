@@ -103,6 +103,10 @@ func Status() (string, error) {
 	return string(resp), nil
 }
 
+func Shell() error {
+	return sh.Run("limactl shell kindli")
+}
+
 func createLimaVMConfig(overrides map[string]interface{}) error {
 	u, err := user.Current()
 	if err != nil {
