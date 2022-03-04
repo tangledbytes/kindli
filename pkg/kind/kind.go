@@ -27,18 +27,7 @@ var (
 )
 
 type CreateConfig struct {
-	DockerRegistry bool
-	QuayRegistry   bool
-	GCRRegistry    bool
-	Name           string
-}
-
-func DefaultCreateConfig() CreateConfig {
-	return CreateConfig{
-		DockerRegistry: true,
-		QuayRegistry:   true,
-		GCRRegistry:    true,
-	}
+	Name string
 }
 
 func init() {

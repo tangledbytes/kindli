@@ -27,11 +27,8 @@ import (
 )
 
 var (
-	cfg                string
-	name               string
-	skipDockerRegistry bool
-	skipQuayRegistry   bool
-	skipGCRRegistry    bool
+	cfg  string
+	name string
 )
 
 // CreateCmd represents create command
@@ -46,9 +43,6 @@ var CreateCmd = &cobra.Command{
 func init() {
 	CreateCmd.Flags().StringVarP(&cfg, "config", "c", "", "kind configuration")
 	CreateCmd.Flags().StringVar(&name, "name", "", "kind cluster name")
-	CreateCmd.Flags().BoolVar(&skipDockerRegistry, "skip-registry-docker", false, "skip installing docker registry")
-	CreateCmd.Flags().BoolVar(&skipGCRRegistry, "skip-registry-gcr", false, "skip installing GCR registry")
-	CreateCmd.Flags().BoolVar(&skipQuayRegistry, "skip-registry-quay", false, "skip installing Quay registry")
 }
 
 func RunCreate() error {
@@ -73,10 +67,7 @@ func RunCreate() error {
 
 	// Create the kind cluster
 	err = kind.Create(cfg, kind.CreateConfig{
-		DockerRegistry: !skipDockerRegistry,
-		QuayRegistry:   !skipQuayRegistry,
-		GCRRegistry:    !skipGCRRegistry,
-		Name:           name,
+		Name: name,
 	})
 	if err != nil {
 		return err
