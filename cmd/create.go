@@ -17,14 +17,12 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/utkarsh-pro/kindli/pkg/config"
 	"github.com/utkarsh-pro/kindli/pkg/docker"
 	"github.com/utkarsh-pro/kindli/pkg/kind"
-	"github.com/utkarsh-pro/kindli/pkg/registry"
 	"github.com/utkarsh-pro/kindli/pkg/utils"
 )
 
@@ -82,35 +80,6 @@ func RunCreate() error {
 	})
 	if err != nil {
 		return err
-	}
-
-	// Setup all of the registries -- Despite the flags
-	for _, reg := range registry.Knowns() {
-		isRunning, err := reg.IsRunning()
-		if err != nil {
-			return err
-		}
-
-		if isRunning {
-			continue
-		}
-
-		path := fmt.Sprintf("/tmp/lima/%s", reg.Name)
-
-		err = os.MkdirAll(path, 0777)
-		if err != nil {
-			return err
-		}
-
-		err = reg.Create(path)
-		if err != nil {
-			return err
-		}
-
-		docker.NetworkConnect("kind", reg.Name)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil

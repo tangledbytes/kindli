@@ -13,40 +13,37 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+
+package image
 
 import (
-	"os"
-
 	"github.com/spf13/cobra"
-	"github.com/utkarsh-pro/kindli/cmd/image"
-	"github.com/utkarsh-pro/kindli/cmd/network"
-	"github.com/utkarsh-pro/kindli/cmd/preq"
-	"github.com/utkarsh-pro/kindli/cmd/vm"
+	"github.com/utkarsh-pro/kindli/pkg/image"
+	"github.com/utkarsh-pro/kindli/pkg/utils"
 )
 
-// RootCmd represents the base command when called without any subcommands
-var RootCmd = &cobra.Command{
-	Use:   "kindli",
-	Short: "Kindli lets users create upto 100 kind clusters in a Linux based virtual machine",
-}
+var LoadCmd = &cobra.Command{
+	Use:     "load",
+	Short:   "Load OCI images in the VM",
+	Example: `kindli image <image-name> <cluster-name>`,
+	Args:    cobra.MatchAll(cobra.MinimumNArgs(1), cobra.MaximumNArgs(2)),
+	Run: func(cmd *cobra.Command, args []string) {
+		image := args[0]
+		cluster := ""
 
-func Execute() {
-	err := RootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
+		if len(args) == 2 {
+			cluster = args[1]
+		}
+
+		utils.ExitIfNotNil(RunLoad(image, cluster))
+	},
 }
 
 func init() {
-	RootCmd.AddCommand(
-		preq.PreqCmd,
-		vm.VMCmd,
-		network.NetworkCmd,
-		image.ImageCmd,
-		CreateCmd,
-		DeleteCmd,
-		InitCmd,
-		PruneCmd,
-	)
+	ImageCmd.AddCommand()
+}
+
+func RunLoad(imageName, clusterName string) error {
+	image.Load(imageName, clusterName)
+	return nil
 }

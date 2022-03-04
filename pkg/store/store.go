@@ -58,6 +58,9 @@ func Get(key ...string) (interface{}, bool) {
 // DeleteTop deletes top level key from the map
 func DeleteTop(key string) {
 	delete(_store, key)
+	if err := writeFS(); err != nil {
+		logrus.Warn("failed to flush data to filesystem")
+	}
 }
 
 func writeFS() error {

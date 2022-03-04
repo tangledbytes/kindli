@@ -11,7 +11,6 @@ import (
 
 	"github.com/utkarsh-pro/kindli/pkg/config"
 	"github.com/utkarsh-pro/kindli/pkg/metallb"
-	"github.com/utkarsh-pro/kindli/pkg/registry"
 	"github.com/utkarsh-pro/kindli/pkg/sh"
 	"github.com/utkarsh-pro/kindli/pkg/store"
 	"github.com/utkarsh-pro/kindli/pkg/utils"
@@ -81,9 +80,6 @@ func Create(cfgPath string, cfg CreateConfig) error {
 
 	// Setup networking info
 	createNetworking(instance, userKindCfg)
-
-	// Setup registry info
-	createRegistries(cfg, userKindCfg)
 
 	// Custom Kind Config
 	customConfig, err := createCustomKindConfig(userKindCfg)
@@ -207,29 +203,6 @@ func createNetworking(instance int, userKindCfg map[string]interface{}) {
 
 	utils.MapSet(userKindCfg, svcSubnet, "networking", "serviceSubnet")
 	utils.MapSet(userKindCfg, podSubnet, "networking", "podSubnet")
-}
-
-func createRegistries(cfg CreateConfig, userKindCfg map[string]interface{}) {
-	registries := map[string]string{}
-
-	for _, registry := range registry.Knowns() {
-		switch registry.Name {
-		case "dockerio-registry":
-			if cfg.DockerRegistry {
-				registries["docker"] = fmt.Sprintf("%s:%s", registry.Name, registry.Port)
-			}
-		case "quayio-registry":
-			if cfg.DockerRegistry {
-				registries["quay"] = fmt.Sprintf("%s:%s", registry.Name, registry.Port)
-			}
-		case "gcrio-registry":
-			if cfg.DockerRegistry {
-				registries["gcr"] = fmt.Sprintf("%s:%s", registry.Name, registry.Port)
-			}
-		}
-	}
-
-	utils.MapSet(userKindCfg, registries, "registries")
 }
 
 func loadUserKindConfig(path string) (map[string]interface{}, error) {
