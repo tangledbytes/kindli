@@ -1,6 +1,6 @@
 # Kindli
 
-Kindli stands for KinD in Lima. Kindli is a CLI written ONLY for MacOS to help setup a VM and run upto 100 kind clusters in them with e2e networking setup.
+Kindli stands for KinD in Lima. Kindli is a CLI written ONLY for MacOS to help setup a VM and run upto 100 kind clusters in them with e2e networking setup. 
 
 Kindli can setup the following:
 1. Create a VM with bidirectional networking enabled. VM supports running both Intel on ARM and ARM on Intel.
@@ -22,6 +22,18 @@ Running the above will:
 5. Setup docker to use docker daemon running in the VM
 
 Kindli is written only for MacOS and hence the prequisite installation uses `brew` at places. If automatic prerequisite installation is not desirable then pass the flag `--skip-preq-install` to the above the command. To see the prerequisites, run `kindli preq check`.
+
+**Kindli requires root access during the init process to setup the routing table.** If this is undesirable, then instead of running `kindli init`. Setup the enviroment manually:
+```bash
+$ kindli vm start --cpu 4 --mem "16GiB" --mount $HOME:ro # Start the VM
+...
+$ kindli vm restart # Restart the VM - Required to setup docker sockets
+...
+$ kindli create # Create a default cluster
+...
+$ kindli network setup # Setup e2e networking - Optional (Makes LoadBalancer IP would be reachable from Host)
+...
+```
 
 ## Command Reference
 
@@ -209,6 +221,7 @@ Flags:
 `kindli preq install` will install the required prequisites for kindli. (Uses Brew)
 
 ```
+$ kindli preq install -h
 Install missing prequisites
 
 Usage:
@@ -226,6 +239,7 @@ Flags:
 `kindli network setup` setups the networking between Host Machine, VM and KinD Docker Network. Requires root access.
 
 ```
+$ kindli network setup -h
 setup e2e networking with cluster
 
 Usage:
@@ -245,6 +259,7 @@ Use "kindli network [command] --help" for more information about a command.
 `kindli image load` loads docker image from host machine into the given KinD cluster. If not cluster name is given then default cluster is selected,
 
 ```
+$ kindli image load -h
 Load OCI images in the VM
 
 Usage:
