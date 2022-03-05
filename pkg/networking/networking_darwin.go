@@ -15,13 +15,13 @@ func Setup() error {
 	}
 	logrus.Debug("Bridge100 IP:", srcIP)
 
-	limaIPAddr, err := sh.RunIO("limactl shell kindli -- ip -o -4 a s | grep lima0 | grep -E -o 'inet [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}' | cut -d' ' -f2")
+	limaIPAddr, err := getLimaVMIPAddress()
 	if err != nil {
 		return fmt.Errorf("failed to get VM internal interace IP address: %s", err)
 	}
 	logrus.Debug("Lima IP Address:", limaIPAddr)
 
-	if err := sh.Run(fmt.Sprintf("sudo route -nv add -net 172.18 %s", trim(limaIPAddr))); err != nil {
+	if err := sh.Run(fmt.Sprintf("sudo route -nv add -net 172.18 %s", trim([]byte(limaIPAddr)))); err != nil {
 		return fmt.Errorf("failed to setup route from system to VM: %s", err)
 	}
 
@@ -38,6 +38,22 @@ func Setup() error {
 	}
 
 	return nil
+}
+
+func getLimaVMIPAddress() (string, error) {
+	// Try on lima0 interface
+	limaIPAddr, err := sh.RunIO("limactl shell kindli -- ip -o -4 a s | grep lima0 | grep -E -o 'inet [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}' | cut -d' ' -f2")
+	if err == nil && string(limaIPAddr) != "" {
+		return string(limaIPAddr), nil
+	}
+
+	// Try on the eth0 interface
+	limaIPAddr, err = sh.RunIO("limactl shell kindli -- ip -o -4 a s | grep eth0 | grep -E -o 'inet [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}' | cut -d' ' -f2")
+	if err == nil && string(limaIPAddr) != "" {
+		return string(limaIPAddr), nil
+	}
+
+	return "", fmt.Errorf("failed to get VM internal interace")
 }
 
 func trim(data []byte) string {
