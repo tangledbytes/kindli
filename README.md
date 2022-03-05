@@ -8,6 +8,12 @@ Kindli can setup the following:
 3. Setup MetalLB to get LoadBalancer working within the cluster.
 4. Run `amd64` images on `arm` clusters and `arm` images on `amd64` clusters.
 
+## Install
+
+```
+brew tap utkarsh-pro/utkarsh-pro
+brew install kindli
+```
 ## Getting Started
 
 ```

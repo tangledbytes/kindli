@@ -1,0 +1,38 @@
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+archives:
+  - replacements:
+      darwin: Darwin
+    files:
+      - "README.md"
+      - "LICENSE"
+universal_binaries:
+  - replace: true
+brews:
+  - name: Kindli
+    homepage: https://github.com/utkarsh-pro/kindli
+    tap:
+      owner: utkarsh-pro
+      name: homebrew-utkarsh-pro
+    commit_author:
+      name: utkarsh-pro
+      email: utkarsh@sagacious.dev
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
