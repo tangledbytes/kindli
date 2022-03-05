@@ -67,8 +67,14 @@ func Create(cfgPath string, cfg CreateConfig) error {
 		return fmt.Errorf("cannot create more than 99 instances")
 	}
 
+	// Get instance ID
+	id, err := store.GetNextID()
+	if err != nil {
+		return fmt.Errorf("failed to get instance ID")
+	}
+
 	// Setup networking info
-	createNetworking(instance, userKindCfg)
+	createNetworking(id, userKindCfg)
 
 	// Custom Kind Config
 	customConfig, err := createCustomKindConfig(userKindCfg)
@@ -91,7 +97,7 @@ func Create(cfgPath string, cfg CreateConfig) error {
 	store.Set(
 		map[string]interface{}{
 			"path":       newPath,
-			"instanceID": instance,
+			"instanceID": id,
 		},
 		name,
 	)

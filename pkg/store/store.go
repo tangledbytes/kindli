@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	_store map[string]interface{} = nil
+	_store   map[string]interface{} = nil
+	_idIndex []bool                 = make([]bool, 100)
 
 	storeFile = "state.json"
 	storePath = ""
@@ -40,6 +41,29 @@ func Load() {
 
 		utils.ExitIfNotNil(err)
 	}
+
+	for _, ent := range _store {
+		castedEnt, ok := ent.(map[string]interface{})
+		if !ok {
+			logrus.Debug("failed to cast store entity")
+			continue
+		}
+
+		instanceID, ok := castedEnt["instanceID"]
+		if !ok {
+			logrus.Debug("failed to get instance ID")
+			continue
+		}
+
+		castedInstanceID, ok := instanceID.(float64)
+		if !ok {
+			logrus.Debug("failed to cast extracted instance id")
+			continue
+		}
+
+		_idIndex[int(castedInstanceID)] = true
+		logrus.Debug("Found instance id: ", int(castedInstanceID))
+	}
 }
 
 // Set sets value to in memory store
@@ -53,6 +77,17 @@ func Set(value interface{}, key ...string) {
 // Get gets the value from the in memory store
 func Get(key ...string) (interface{}, bool) {
 	return utils.MapGet(_store, key...)
+}
+
+// GetNextID returns the next ID that can be used for the next instance
+func GetNextID() (int, error) {
+	for i := 0; i < len(_idIndex); i++ {
+		if !_idIndex[i] {
+			return i, nil
+		}
+	}
+
+	return -1, fmt.Errorf("all the ids are taken")
 }
 
 // DeleteTop deletes top level key from the map
