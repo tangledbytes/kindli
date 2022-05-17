@@ -15,6 +15,7 @@ mounts:
 {{- range $index, $element := .Mounts}}
   - location: "{{$element.location}}"
     writable: {{$element.writable}}
+    9p: {}
 {{- end}}
 
 ssh:
