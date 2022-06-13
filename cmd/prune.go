@@ -19,7 +19,6 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"github.com/utkarsh-pro/kindli/cmd/vm"
-	"github.com/utkarsh-pro/kindli/pkg/config"
 	"github.com/utkarsh-pro/kindli/pkg/utils"
 )
 
@@ -33,13 +32,16 @@ Prune process will perform the following operations:
 2. Delete the VM
 3. Cleanup the ~/.kindli directory`,
 	Run: func(cmd *cobra.Command, args []string) {
+		name, err := cmd.Flags().GetString("vm-name")
+		utils.ExitIfNotNil(err)
+
 		// Stop the running VM
-		utils.ExitIfNotNil(vm.RunStop())
+		utils.ExitIfNotNil(vm.RunStop(name))
 
 		// Delete the VM
-		utils.ExitIfNotNil(vm.RunDelete())
+		utils.ExitIfNotNil(vm.RunDelete(name))
 
 		// Cleanup dirs
-		utils.ExitIfNotNil(config.CleanupDir())
+		// utils.ExitIfNotNil(config.CleanupDir())
 	},
 }

@@ -27,8 +27,7 @@ import (
 )
 
 var (
-	cfg  string
-	name string
+	cfg string
 )
 
 // CreateCmd represents create command
@@ -36,31 +35,36 @@ var CreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a new kind cluster",
 	Run: func(cmd *cobra.Command, args []string) {
-		utils.ExitIfNotNil(RunCreate())
+		name, err := cmd.Flags().GetString("cluster-name")
+		utils.ExitIfNotNil(err)
+
+		cname, err := cmd.Flags().GetString("cluster-name")
+		utils.ExitIfNotNil(err)
+
+		utils.ExitIfNotNil(RunCreate(cname, name))
 	},
 }
 
 func init() {
 	CreateCmd.Flags().StringVarP(&cfg, "config", "c", "", "kind configuration")
-	CreateCmd.Flags().StringVar(&name, "name", "", "kind cluster name")
 }
 
-func RunCreate() error {
+func RunCreate(name string, vmName string) error {
 	// Create docker context if it doesn't already exists
-	ctxExists, err := docker.ExistsContext("kindli")
+	ctxExists, err := docker.ExistsContext(vmName)
 	if err != nil {
 		return err
 	}
 
 	if !ctxExists {
-		err := docker.CreateContext("kindli", fmt.Sprintf("host=unix://%s", filepath.Join(config.Dir(), "docker.sock")))
+		err := docker.CreateContext(vmName, fmt.Sprintf("host=unix://%s", filepath.Join(config.Dir(), "docker.sock")))
 		if err != nil {
 			return err
 		}
 	}
 
 	// Switch default docker context to newly created docker context
-	err = docker.UseContext("kindli")
+	err = docker.UseContext(vmName)
 	if err != nil {
 		return err
 	}

@@ -26,10 +26,12 @@ var ShellCmd = &cobra.Command{
 	Use:   "shell",
 	Short: "SSH into the Kindli VM",
 	Run: func(cmd *cobra.Command, args []string) {
-		utils.ExitIfNotNil(RunShell())
+		name, err := cmd.Flags().GetString("vm-name")
+		utils.ExitIfNotNil(err)
+		utils.ExitIfNotNil(RunShell(name))
 	},
 }
 
-func RunShell() error {
-	return vm.Shell()
+func RunShell(name string) error {
+	return vm.Shell(name)
 }

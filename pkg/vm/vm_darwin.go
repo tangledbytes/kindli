@@ -15,22 +15,21 @@ import (
 	"github.com/utkarsh-pro/kindli/pkg/sh"
 )
 
-var (
-	vmName     = "kindli"
-	vmFilePath = filepath.Join(config.Dir(), fmt.Sprintf("%s.yaml", vmName))
-)
+func vmFilePath(vmName string) string {
+	return filepath.Join(config.Dir(), fmt.Sprintf("%s.yaml", vmName))
+}
 
 //go:embed vm.template
 var vmTemplate string
 
 // Start takes VM config overrides and creates a VM using lima
-func Start(overrides map[string]interface{}, skipIfExists bool) error {
-	exists, err := exists()
+func Start(overrides map[string]interface{}, skipIfExists bool, vmName string) error {
+	exists, err := exists(vmName)
 	if err != nil {
 		return err
 	}
 
-	isRunning, err := Running()
+	isRunning, err := Running(vmName)
 	if err != nil {
 		return err
 	}
@@ -47,16 +46,16 @@ func Start(overrides map[string]interface{}, skipIfExists bool) error {
 		return sh.Run("limactl start --tty=false " + vmName)
 	}
 
-	if err := createLimaVMConfig(overrides); err != nil {
+	if err := createLimaVMConfig(overrides, vmName); err != nil {
 		return err
 	}
 
-	return sh.Run("limactl start --tty=false " + vmFilePath)
+	return sh.Run("limactl start --tty=false " + vmFilePath(vmName))
 }
 
 // Stop stops the currently running VM
-func Stop() error {
-	isRunning, err := Running()
+func Stop(vmName string) error {
+	isRunning, err := Running(vmName)
 	if err != nil {
 		return err
 	}
@@ -69,8 +68,8 @@ func Stop() error {
 }
 
 // Delete deltes the stopped VM
-func Delete() error {
-	exist, err := exists()
+func Delete(vmName string) error {
+	exist, err := exists(vmName)
 	if err != nil {
 		return err
 	}
@@ -83,19 +82,19 @@ func Delete() error {
 		return err
 	}
 
-	return os.Remove(vmFilePath)
+	return os.Remove(vmFilePath(vmName))
 }
 
-func Restart() error {
-	if err := Stop(); err != nil {
+func Restart(vmName string) error {
+	if err := Stop(vmName); err != nil {
 		return err
 	}
 
-	return Start(nil, true)
+	return Start(nil, true, vmName)
 }
 
-func Status() (string, error) {
-	resp, err := sh.RunIO("limactl ls | awk '/NAME/ || /kindli/ {print $0}'")
+func Status(vmName string) (string, error) {
+	resp, err := sh.RunIO(fmt.Sprintf("limactl ls | awk '/NAME/ || /%s/ {print $0}'", vmName))
 	if err != nil {
 		return "", fmt.Errorf("failed to get status of VM: %s", err)
 	}
@@ -103,18 +102,18 @@ func Status() (string, error) {
 	return string(resp), nil
 }
 
-func Shell() error {
-	return sh.Run("limactl shell kindli")
+func Shell(vmName string) error {
+	return sh.Run("limactl shell " + vmName)
 }
 
-func createLimaVMConfig(overrides map[string]interface{}) error {
+func createLimaVMConfig(overrides map[string]interface{}, vmName string) error {
 	u, err := user.Current()
 	if err != nil {
 		return fmt.Errorf("failed to find username: %s", err)
 	}
 	overrides["user"] = u.Username
 
-	file, err := os.Create(vmFilePath)
+	file, err := os.Create(vmFilePath(vmName))
 	if err != nil {
 		return err
 	}
@@ -128,7 +127,7 @@ func createLimaVMConfig(overrides map[string]interface{}) error {
 	return parsed.Execute(file, overrides)
 }
 
-func Running() (bool, error) {
+func Running(vmName string) (bool, error) {
 	out, err := exec.Command("limactl", "ls", "--format={{ .Name }}={{ .Status }}").CombinedOutput()
 	if err != nil {
 		return false, fmt.Errorf("failed to get VM status: %s", err)
@@ -152,7 +151,7 @@ func Running() (bool, error) {
 	return false, nil
 }
 
-func exists() (bool, error) {
+func exists(vmName string) (bool, error) {
 	out, err := exec.Command("limactl", "ls", "--format={{ .Name }}={{ .Status }}").CombinedOutput()
 	if err != nil {
 		return false, fmt.Errorf("failed to get VM status: %s", err)

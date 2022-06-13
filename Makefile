@@ -1,7 +1,9 @@
+OUT=./bin/kindli
+
 .PHONY: build run
 
 run:
-	go run .
+	go run $(OUT)
 
 build:
-	go build $(CFLAGS) .
+	go build -o $(OUT) $(CFLAGS) .

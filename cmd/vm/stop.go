@@ -26,10 +26,12 @@ var StopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Stop running Kindli VM",
 	Run: func(cmd *cobra.Command, args []string) {
-		utils.ExitIfNotNil(RunStop())
+		name, err := cmd.Flags().GetString("vm-name")
+		utils.ExitIfNotNil(err)
+		utils.ExitIfNotNil(RunStop(name))
 	},
 }
 
-func RunStop() error {
-	return vm.Stop()
+func RunStop(name string) error {
+	return vm.Stop(name)
 }

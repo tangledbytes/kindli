@@ -49,4 +49,7 @@ func init() {
 		InitCmd,
 		PruneCmd,
 	)
+
+	RootCmd.PersistentFlags().String("vm-name", "kindli", "Name of the VM")
+	RootCmd.PersistentFlags().String("cluster-name", "kindli", "Name of the cluster")
 }

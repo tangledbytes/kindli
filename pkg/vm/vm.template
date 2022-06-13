@@ -41,6 +41,10 @@ provision:
       usermod -aG docker {{.user}}
 
       nerdctl run --privileged --rm tonistiigi/binfmt --install all
+
+      mkdir -p /etc/systemd/system/docker.service.d
+      printf "[Service]\nExecStart=\nExecStart=/usr/bin/dockerd -H unix:// -H tcp://0.0.0.0:2375" > /etc/systemd/system/docker.service.d/options.conf
+      systemctl daemon-reload
 probes:
   - script: |
       #!/bin/bash

@@ -44,15 +44,21 @@ Initialization process will perform the following operations:
 			utils.ExitIfNotNil(preq.RunInstall())
 		}
 
+		name, err := cmd.Flags().GetString("vm-name")
+		utils.ExitIfNotNil(err)
+
 		// 2. Start the VM
-		utils.ExitIfNotNil(vm.RunStart())
-		utils.ExitIfNotNil(vm.RunRestart())
+		utils.ExitIfNotNil(vm.RunStart(name))
+		utils.ExitIfNotNil(vm.RunRestart(name))
+
+		cname, err := cmd.Flags().GetString("cluster-name")
+		utils.ExitIfNotNil(err)
 
 		// 3. Create default cluster
-		utils.ExitIfNotNil(RunCreate())
+		utils.ExitIfNotNil(RunCreate(cname, name))
 
 		// 4. Setup e2e networking
-		utils.ExitIfNotNil(network.RunSetup())
+		utils.ExitIfNotNil(network.RunSetup(name))
 	},
 }
 

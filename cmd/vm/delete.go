@@ -26,10 +26,12 @@ var DeleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete Kindli VM",
 	Run: func(cmd *cobra.Command, args []string) {
-		utils.ExitIfNotNil(vm.Delete())
+		name, err := cmd.Flags().GetString("vm-name")
+		utils.ExitIfNotNil(err)
+		utils.ExitIfNotNil(RunDelete(name))
 	},
 }
 
-func RunDelete() error {
-	return vm.Delete()
+func RunDelete(name string) error {
+	return vm.Delete(name)
 }

@@ -26,16 +26,15 @@ import (
 var DeleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete given kind cluster",
-	Args:  cobra.MatchAll(cobra.MinimumNArgs(0), cobra.MaximumNArgs(1)),
 	Run: func(cmd *cobra.Command, args []string) {
-		utils.ExitIfNotNil(docker.UseContext("kindli"))
+		name, err := cmd.Flags().GetString("vm-name")
+		utils.ExitIfNotNil(err)
 
-		// Delete the kind cluster
-		name := ""
-		if len(args) > 0 {
-			name = args[0]
-		}
+		cname, err := cmd.Flags().GetString("cluster-name")
+		utils.ExitIfNotNil(err)
 
-		utils.ExitIfNotNil(kind.Delete(name))
+		utils.ExitIfNotNil(docker.UseContext(name))
+
+		utils.ExitIfNotNil(kind.Delete(cname))
 	},
 }
