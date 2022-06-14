@@ -57,7 +57,7 @@ func RunCreate(name string, vmName string) error {
 	}
 
 	if !ctxExists {
-		err := docker.CreateContext(vmName, fmt.Sprintf("host=unix://%s", filepath.Join(config.Dir(), "docker.sock")))
+		err := docker.CreateContext(vmName, fmt.Sprintf("host=unix://%s", filepath.Join(config.Dir(), vmName+".sock")))
 		if err != nil {
 			return err
 		}
@@ -71,7 +71,8 @@ func RunCreate(name string, vmName string) error {
 
 	// Create the kind cluster
 	err = kind.Create(cfg, kind.CreateConfig{
-		Name: name,
+		Name:   utils.CreateClusterName(name, vmName),
+		VMName: vmName,
 	})
 	if err != nil {
 		return err

@@ -9,10 +9,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
 	"github.com/utkarsh-pro/kindli/pkg/config"
 	"github.com/utkarsh-pro/kindli/pkg/metallb"
+	"github.com/utkarsh-pro/kindli/pkg/models"
 	"github.com/utkarsh-pro/kindli/pkg/sh"
-	"github.com/utkarsh-pro/kindli/pkg/store"
 	"github.com/utkarsh-pro/kindli/pkg/utils"
 	"gopkg.in/yaml.v2"
 )
@@ -27,7 +28,8 @@ var (
 )
 
 type CreateConfig struct {
-	Name string
+	Name   string
+	VMName string
 }
 
 func init() {
@@ -51,116 +53,92 @@ func Create(cfgPath string, cfg CreateConfig) error {
 	}
 
 	// Check if the instance with same name exists or not
-	if Exists(name) {
-		return fmt.Errorf("instance with name \"%s\" already exists", name)
+	if Exists(name, cfg.VMName) {
+		logrus.Warn("instance with name \"%s\" already exists: skipping cluster creation", name)
+		logrus.Warn("skipped cluster creation - proceed with metallb configuration")
+
+		if err := metallb.Install(name); err != nil {
+			return fmt.Errorf("failed to create metallb config for the kind cluster: %w", err)
+		}
+
+		return nil
 	}
 
-	// Load kindli store
-	lstore, ok := store.Get()
-	if !ok {
-		return fmt.Errorf("failed to get data from store")
+	// Create kind cluster
+	if err := createKindCluster(name, cfg.VMName, userKindCfg); err != nil {
+		return fmt.Errorf("failed to create kind cluster: %s", err)
 	}
 
-	instance := len(lstore.(map[string]interface{}))
-
-	if instance >= 99 {
-		return fmt.Errorf("cannot create more than 99 instances")
+	// Create metallb for the kind cluster
+	if err := metallb.Install(name); err != nil {
+		return fmt.Errorf("failed to create metallb config for the kind cluster: %w", err)
 	}
 
-	// Get instance ID
-	id, err := store.GetNextID()
+	return nil
+}
+
+func Delete(name string) error {
+	c := models.NewCluster(name, "", "")
+	if err := c.GetByName(); err != nil {
+		return fmt.Errorf("instance with name \"%s\" does not exists", name)
+	}
+
+	if err := sh.Run(fmt.Sprintf("kind delete cluster --name=%s", c.Name)); err != nil {
+		return fmt.Errorf("failed to delete kind instance: %s", err)
+	}
+
+	if err := os.Remove(c.KindConfigPath); err != nil {
+		return fmt.Errorf("failed to delete instance: %w", err)
+	}
+
+	if err := c.Delete(); err != nil {
+		return fmt.Errorf("failed to delete cluster: %w", err)
+	}
+
+	return nil
+}
+
+func Exists(name, vmName string) bool {
+	ok, err := models.NewCluster(name, "", vmName).Exists()
 	if err != nil {
-		return fmt.Errorf("failed to get instance ID")
+		logrus.Warn("failed to find instance in store: %w", err)
+		return false
+	}
+
+	return ok
+}
+
+func createKindCluster(name, vmName string, userKindCfg map[string]interface{}) error {
+	// Save the new instance in the store
+	cluster := models.NewCluster(name, "", vmName)
+	if err := cluster.AssignID(); err != nil {
+		return fmt.Errorf("failed to assign ID to cluster: %w", err)
 	}
 
 	// Setup networking info
-	createNetworking(id, userKindCfg)
+	createNetworking(int(cluster.ID), userKindCfg)
 
 	// Custom Kind Config
 	customConfig, err := createCustomKindConfig(userKindCfg)
 	if err != nil {
-		return fmt.Errorf("failed to create kind config with overrides: %s", err)
+		return fmt.Errorf("failed to create kind config with overrides: %w", err)
 	}
 
 	// Persist the altered user config
-	newPath, err := persistAlteredConfig(name, customConfig)
+	cluster.KindConfigPath, err = persistAlteredConfig(name, customConfig)
 	if err != nil {
-		return fmt.Errorf("failed to persist kind config locally")
+		return fmt.Errorf("failed to persist kind config locally: %w", err)
 	}
 
 	// Create kind cluster
-	if err := sh.Run(fmt.Sprintf("kind create cluster --config %s", newPath)); err != nil {
-		return fmt.Errorf("failed to create kind cluster: %s", err)
+	if err := sh.Run(fmt.Sprintf("kind create cluster --config %s", cluster.KindConfigPath)); err != nil {
+		return fmt.Errorf("failed to create kind cluster: %w", err)
 	}
-
-	// Save the new instance in the store
-	store.Set(
-		map[string]interface{}{
-			"path":       newPath,
-			"instanceID": id,
-		},
-		name,
-	)
-
-	// Create metallb for the kind cluster
-	if err := metallb.Install(name); err != nil {
-		return fmt.Errorf("failed to create metallb config for the kind cluste: %s", err)
+	if err := cluster.Save(); err != nil {
+		return fmt.Errorf("failed to save cluster: %w", err)
 	}
 
 	return nil
-}
-
-func List() []string {
-	resp := []string{}
-
-	instances, ok := store.Get()
-	if !ok {
-		return resp
-	}
-
-	casted, ok := instances.(map[string]interface{})
-	if !ok {
-		return resp
-	}
-
-	for k := range casted {
-		resp = append(resp, k)
-	}
-
-	return resp
-}
-
-func Delete(name string) error {
-	if name == "" {
-		name = "kindli"
-	}
-
-	_, ok := store.Get(name)
-	if !ok {
-		return fmt.Errorf("instance with name \"%s\" does not exists", name)
-	}
-
-	if err := sh.Run(fmt.Sprintf("kind delete cluster --name=%s", name)); err != nil {
-		return fmt.Errorf("failed to delete kind instance: %s", err)
-	}
-
-	if err := os.Remove(filepath.Join(instanceDirPath, fmt.Sprintf("%s.yaml", name))); err != nil {
-		return fmt.Errorf("failed to delete instance: %s", err)
-	}
-
-	store.DeleteTop(name)
-
-	return nil
-}
-
-func Get(name string) (interface{}, bool) {
-	return store.Get(name)
-}
-
-func Exists(name string) bool {
-	_, exists := store.Get(name)
-
-	return exists
 }
 
 func getUserKindCfgName(userKindCfg map[string]interface{}, customName string) (string, error) {

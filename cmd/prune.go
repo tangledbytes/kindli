@@ -19,6 +19,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"github.com/utkarsh-pro/kindli/cmd/vm"
+	"github.com/utkarsh-pro/kindli/pkg/config"
 	"github.com/utkarsh-pro/kindli/pkg/utils"
 )
 
@@ -28,20 +29,42 @@ var PruneCmd = &cobra.Command{
 	Long: `prune will prune kindli
 
 Prune process will perform the following operations:
-1. Stop the running VM
-2. Delete the VM
+1. Stop all of the running VMs
+2. Delete all of the VMs
 3. Cleanup the ~/.kindli directory`,
 	Run: func(cmd *cobra.Command, args []string) {
-		name, err := cmd.Flags().GetString("vm-name")
+		all, err := cmd.Flags().GetBool("all")
 		utils.ExitIfNotNil(err)
 
-		// Stop the running VM
-		utils.ExitIfNotNil(vm.RunStop(name))
+		if !all {
+			name, err := cmd.Flags().GetString("vm-name")
+			utils.ExitIfNotNil(err)
 
-		// Delete the VM
-		utils.ExitIfNotNil(vm.RunDelete(name))
+			// Stop the running VM
+			utils.ExitIfNotNil(vm.RunStop(name))
+
+			// Delete the VM
+			utils.ExitIfNotNil(vm.RunDelete(name))
+
+			return
+		}
+
+		vms, err := vm.RunList()
+		utils.ExitIfNotNil(err)
+
+		for _, name := range vms {
+			// Stop the running VM
+			utils.ExitIfNotNil(vm.RunStop(name))
+
+			// Delete the VM
+			utils.ExitIfNotNil(vm.RunDelete(name))
+		}
 
 		// Cleanup dirs
-		// utils.ExitIfNotNil(config.CleanupDir())
+		utils.ExitIfNotNil(config.CleanupDir())
 	},
+}
+
+func init() {
+	PruneCmd.Flags().BoolP("all", "a", true, "If true, prune will delete all of the VMs")
 }

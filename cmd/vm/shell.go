@@ -28,10 +28,11 @@ var ShellCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name, err := cmd.Flags().GetString("vm-name")
 		utils.ExitIfNotNil(err)
-		utils.ExitIfNotNil(RunShell(name))
+
+		utils.ExitIfNotNil(RunShell(name, args))
 	},
 }
 
-func RunShell(name string) error {
-	return vm.Shell(name)
+func RunShell(name string, args []string) error {
+	return vm.Shell(name, args...)
 }

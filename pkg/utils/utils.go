@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"strconv"
 
 	"github.com/sirupsen/logrus"
@@ -15,7 +16,16 @@ import (
 func ExitIfNotNil(err error) {
 	if err != nil {
 		logrus.Fatal(err)
+		if logrus.IsLevelEnabled(logrus.TraceLevel) {
+			debug.PrintStack()
+		}
 	}
+}
+
+// CreateClusterName takes the name of the cluster and vm name and returns the
+// name of the cluster
+func CreateClusterName(name, vmName string) string {
+	return fmt.Sprintf("%s-%s", vmName, name)
 }
 
 // MapGet takes in the map keys - each key goes one level deeper in the map

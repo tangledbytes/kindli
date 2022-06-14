@@ -33,7 +33,16 @@ func Setup(vmName string) error {
 	destNet := "172.18.0.0/16"
 	hostIf := "lima0"
 
-	if err := sh.Run(fmt.Sprintf("limactl shell %s -- sudo iptables -t filter -A FORWARD -4 -p tcp -s %s -d %s -j ACCEPT -i %s -o %s", vmName, trim(srcIP), destNet, hostIf, trim(kindIf))); err != nil {
+	if err := sh.Run(
+		fmt.Sprintf(
+			"limactl shell %s -- sudo iptables -t filter -A FORWARD -4 -p tcp -s %s -d %s -j ACCEPT -i %s -o %s",
+			vmName,
+			trim(srcIP),
+			destNet,
+			hostIf,
+			trim(kindIf),
+		),
+	); err != nil {
 		return fmt.Errorf("failed to setup route from VM network interface to kind network interface")
 	}
 
@@ -42,13 +51,22 @@ func Setup(vmName string) error {
 
 func getLimaVMIPAddress(vmName string) (string, error) {
 	// Try on lima0 interface
-	limaIPAddr, err := sh.RunIO(fmt.Sprintf("limactl shell %s -- ip -o -4 a s | grep lima0 | grep -E -o 'inet [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}' | cut -d' ' -f2", vmName))
+	limaIPAddr, err := sh.RunIO(
+		fmt.Sprintf(
+			"limactl shell %s -- ip -o -4 a s | grep lima0 | grep -E -o 'inet [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}' | cut -d' ' -f2",
+			vmName,
+		),
+	)
 	if err == nil && string(limaIPAddr) != "" {
 		return string(limaIPAddr), nil
 	}
 
 	// Try on the eth0 interface
-	limaIPAddr, err = sh.RunIO(fmt.Sprintf("limactl shell %s -- ip -o -4 a s | grep eth0 | grep -E -o 'inet [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}' | cut -d' ' -f2", vmName))
+	limaIPAddr, err = sh.RunIO(
+		fmt.Sprintf(
+			"limactl shell %s -- ip -o -4 a s | grep eth0 | grep -E -o 'inet [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}' | cut -d' ' -f2",
+			vmName,
+		))
 	if err == nil && string(limaIPAddr) != "" {
 		return string(limaIPAddr), nil
 	}

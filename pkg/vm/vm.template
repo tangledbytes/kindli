@@ -18,9 +18,6 @@ mounts:
     9p: {}
 {{- end}}
 
-ssh:
-  localPort: 60006
-  loadDotSSHPubKeys: true
 containerd:
   system: false
   user: true
@@ -30,7 +27,6 @@ provision:
     script: |
       #!/bin/bash
       set -eux -o pipefail
-      # command -v docker >/dev/null 2>&1 && exit 0
       export DEBIAN_FRONTEND=noninteractive
       # https://kind.sigs.k8s.io/docs/user/known-issues/#pod-errors-due-to-too-many-open-files
       sysctl fs.inotify.max_user_watches=524288
@@ -43,7 +39,7 @@ provision:
       nerdctl run --privileged --rm tonistiigi/binfmt --install all
 
       mkdir -p /etc/systemd/system/docker.service.d
-      printf "[Service]\nExecStart=\nExecStart=/usr/bin/dockerd -H unix:// -H tcp://0.0.0.0:2375" > /etc/systemd/system/docker.service.d/options.conf
+      printf "[Service]\nExecStart=\nExecStart=/usr/bin/dockerd -H unix:// -H tcp://0.0.0.0:{{or .dockerPort 2375}}" > /etc/systemd/system/docker.service.d/options.conf
       systemctl daemon-reload
 probes:
   - script: |
@@ -56,7 +52,12 @@ probes:
     hint: See "/var/log/cloud-init-output.log". in the guest
 portForwards:
   - guestSocket: "/run/docker.sock"
-    hostSocket: "{{"{{.Home}}"}}/.kindli/docker.sock"
+    hostSocket: "{{"{{.Home}}"}}/.kindli/{{.vmName}}.sock"
 
 networks:
   - lima: shared
+
+useHostResolver: false
+dns:
+  - 1.1.1.1
+  - 1.0.0.1

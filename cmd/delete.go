@@ -35,6 +35,6 @@ var DeleteCmd = &cobra.Command{
 
 		utils.ExitIfNotNil(docker.UseContext(name))
 
-		utils.ExitIfNotNil(kind.Delete(cname))
+		utils.ExitIfNotNil(kind.Delete(utils.CreateClusterName(cname, name)))
 	},
 }

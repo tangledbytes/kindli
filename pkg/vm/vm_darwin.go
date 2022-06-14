@@ -11,7 +11,9 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/sirupsen/logrus"
 	"github.com/utkarsh-pro/kindli/pkg/config"
+	"github.com/utkarsh-pro/kindli/pkg/models"
 	"github.com/utkarsh-pro/kindli/pkg/sh"
 )
 
@@ -19,19 +21,25 @@ func vmFilePath(vmName string) string {
 	return filepath.Join(config.Dir(), fmt.Sprintf("%s.yaml", vmName))
 }
 
+func defaultDockerPort() int {
+	return 2375
+}
+
 //go:embed vm.template
 var vmTemplate string
 
 // Start takes VM config overrides and creates a VM using lima
 func Start(overrides map[string]interface{}, skipIfExists bool, vmName string) error {
+	logrus.Infoln("Starting VM:", vmName)
+
 	exists, err := exists(vmName)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check if VM exists: %w", err)
 	}
 
 	isRunning, err := Running(vmName)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check if VM is running: %w", err)
 	}
 
 	if isRunning {
@@ -39,18 +47,43 @@ func Start(overrides map[string]interface{}, skipIfExists bool, vmName string) e
 			return nil
 		}
 
-		return errors.New("kindli VM already exists")
+		return fmt.Errorf("vm is already running")
 	}
 
 	if exists || overrides == nil {
-		return sh.Run("limactl start --tty=false " + vmName)
+		err := sh.Run("limactl start --tty=false " + vmName)
+		if err != nil {
+			return fmt.Errorf("failed to start VM: %w", err)
+		}
+
+		return nil
 	}
 
-	if err := createLimaVMConfig(overrides, vmName); err != nil {
-		return err
+	// Create a new VM
+	port, err := models.GetMaxVMDockerPort()
+	if err != nil {
+		return fmt.Errorf("failed to get max docker port for the VM: %w", err)
+	}
+	if port == 0 {
+		port = defaultDockerPort()
+	} else {
+		port++
 	}
 
-	return sh.Run("limactl start --tty=false " + vmFilePath(vmName))
+	vm := models.NewVM(vmName, vmFilePath(vmName), port)
+
+	if err := createLimaVMConfig(overrides, vm); err != nil {
+		return fmt.Errorf("failed to create lima VM config: %w", err)
+	}
+	if err := vm.Save(); err != nil {
+		return fmt.Errorf("failed to save vm instance: %w", err)
+	}
+
+	if err := sh.Run("limactl start --tty=false " + vm.LimaConfigPath); err != nil {
+		return fmt.Errorf("failed to start VM: %w", err)
+	}
+
+	return nil
 }
 
 // Stop stops the currently running VM
@@ -61,13 +94,13 @@ func Stop(vmName string) error {
 	}
 
 	if !isRunning {
-		return errors.New("kindli VM is not in running state")
+		return errors.New("VM is not in running state")
 	}
 
 	return sh.Run("limactl stop " + vmName)
 }
 
-// Delete deltes the stopped VM
+// Delete deletes the stopped VM
 func Delete(vmName string) error {
 	exist, err := exists(vmName)
 	if err != nil {
@@ -75,16 +108,26 @@ func Delete(vmName string) error {
 	}
 
 	if !exist {
-		return errors.New("kindli VM does not exists")
+		return errors.New("VM does not exists")
 	}
 
-	if err := sh.Run("limactl delete " + vmName); err != nil {
+	vm := models.NewVM(vmName, "", 0)
+	if err := vm.GetByName(); err != nil {
+		return fmt.Errorf("failed to get VM by name: %w", err)
+	}
+
+	if err := sh.Run("limactl delete " + vm.Name); err != nil {
 		return err
 	}
 
-	return os.Remove(vmFilePath(vmName))
+	if err := os.Remove(vm.LimaConfigPath); err != nil {
+		return err
+	}
+
+	return vm.Delete()
 }
 
+// Restart restarts the VM
 func Restart(vmName string) error {
 	if err := Stop(vmName); err != nil {
 		return err
@@ -93,6 +136,7 @@ func Restart(vmName string) error {
 	return Start(nil, true, vmName)
 }
 
+// Status shows the status of the VM
 func Status(vmName string) (string, error) {
 	resp, err := sh.RunIO(fmt.Sprintf("limactl ls | awk '/NAME/ || /%s/ {print $0}'", vmName))
 	if err != nil {
@@ -102,31 +146,16 @@ func Status(vmName string) (string, error) {
 	return string(resp), nil
 }
 
-func Shell(vmName string) error {
-	return sh.Run("limactl shell " + vmName)
+// Shell opens the shell of the VM
+func Shell(vmName string, args ...string) error {
+	if len(args) == 0 {
+		return sh.Run("limactl shell " + vmName)
+	}
+
+	return sh.Run("limactl shell " + vmName + " -- " + strings.Join(args, " "))
 }
 
-func createLimaVMConfig(overrides map[string]interface{}, vmName string) error {
-	u, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("failed to find username: %s", err)
-	}
-	overrides["user"] = u.Username
-
-	file, err := os.Create(vmFilePath(vmName))
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	parsed, err := template.New("kindli").Parse(vmTemplate)
-	if err != nil {
-		return err
-	}
-
-	return parsed.Execute(file, overrides)
-}
-
+// Running checks if the VM is running
 func Running(vmName string) (bool, error) {
 	out, err := exec.Command("limactl", "ls", "--format={{ .Name }}={{ .Status }}").CombinedOutput()
 	if err != nil {
@@ -149,6 +178,49 @@ func Running(vmName string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// List returns a list of all the VMs
+func List() ([]string, error) {
+	vms, err := models.ListVM()
+	if err != nil {
+		return nil, err
+	}
+
+	var vmNames []string
+	for _, vm := range vms {
+		vmNames = append(vmNames, vm.Name)
+	}
+
+	return vmNames, nil
+}
+
+func createLimaVMConfig(overrides map[string]interface{}, vm *models.VM) error {
+	logrus.Debug("Creating lima VM config at:", vm.LimaConfigPath)
+	u, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("failed to find username: %w", err)
+	}
+	overrides["user"] = u.Username
+	overrides["vmName"] = vm.Name
+	overrides["dockerPort"] = vm.DockerPort
+
+	file, err := os.Create(vm.LimaConfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to create VM config file: %w", err)
+	}
+	defer file.Close()
+
+	parsed, err := template.New(vm.Name).Parse(vmTemplate)
+	if err != nil {
+		return fmt.Errorf("failed to parse VM config template: %w", err)
+	}
+
+	if err := parsed.Execute(file, overrides); err != nil {
+		return fmt.Errorf("failed to execute VM config template: %w", err)
+	}
+
+	return nil
 }
 
 func exists(vmName string) (bool, error) {

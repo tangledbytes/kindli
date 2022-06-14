@@ -7,8 +7,8 @@ import (
 	"text/template"
 
 	"github.com/utkarsh-pro/kindli/pkg/docker"
+	"github.com/utkarsh-pro/kindli/pkg/models"
 	"github.com/utkarsh-pro/kindli/pkg/sh"
-	"github.com/utkarsh-pro/kindli/pkg/store"
 )
 
 var (
@@ -16,34 +16,36 @@ var (
 	metalLBTemplate string
 )
 
+// Install install metallb in the given cluster
 func Install(clusterName string) error {
 	if err := sh.Run("kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml"); err != nil {
-		return fmt.Errorf("failed to install metallb: %s", err)
+		return fmt.Errorf("failed to install metallb: %w", err)
 	}
 
 	if err := sh.Run("kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/metallb.yaml"); err != nil {
-		return fmt.Errorf("failed to install metallb: %s", err)
+		return fmt.Errorf("failed to install metallb: %w", err)
 	}
 
-	return Configure(clusterName)
+	if err := Configure(clusterName); err != nil {
+		return fmt.Errorf("failed to configure metallb: %w", err)
+	}
+
+	return nil
 }
 
+// Configure configures metallb in the given cluster
 func Configure(clusterName string) error {
 	networkPrefix, err := docker.NetworkInspect("kind", "{{ join (slice (split (index .IPAM.Config 0 \"Subnet\") \".\") 0 2) \".\" }}")
 	if err != nil {
-		return fmt.Errorf("failed to configure metallb: %s", err)
+		return fmt.Errorf("failed to configure metallb: %w", err)
 	}
 
-	id, ok := store.Get(clusterName, "instanceID")
-	if !ok {
-		return fmt.Errorf("failed to find cluster with name: %s", clusterName)
+	c := models.NewCluster(clusterName, "", "")
+	if err := c.GetByName(); err != nil {
+		return fmt.Errorf("failed to find cluster with name \"%s\": %w", clusterName, err)
 	}
 
-	intID, ok := id.(int)
-	if !ok {
-		return fmt.Errorf("corrupted metadata store")
-	}
-
+	intID := int(c.ID)
 	if intID >= 99 {
 		return fmt.Errorf("cannot configure more than 99 instances")
 	}
@@ -52,11 +54,11 @@ func Configure(clusterName string) error {
 
 	cfgPath, err := createConfig(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to generate metallb config: %s", err)
+		return fmt.Errorf("failed to generate metallb config: %w", err)
 	}
 
 	if err := sh.Run(fmt.Sprintf("kubectl apply -f %s", cfgPath)); err != nil {
-		return fmt.Errorf("failed to apply config to kubernetes: %s", err)
+		return fmt.Errorf("failed to apply config to kubernetes: %w", err)
 	}
 
 	return nil

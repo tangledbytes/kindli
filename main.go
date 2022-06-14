@@ -16,11 +16,14 @@ limitations under the License.
 package main
 
 import (
+	"path/filepath"
+
 	"github.com/mattn/go-colorable"
 	"github.com/sirupsen/logrus"
 	"github.com/utkarsh-pro/kindli/cmd"
 	"github.com/utkarsh-pro/kindli/pkg/config"
-	"github.com/utkarsh-pro/kindli/pkg/store"
+	"github.com/utkarsh-pro/kindli/pkg/db"
+	"github.com/utkarsh-pro/kindli/pkg/models"
 )
 
 func init() {
@@ -28,12 +31,14 @@ func init() {
 	logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
 	logrus.SetOutput(colorable.NewColorableStdout())
 
-	// Load the store
-	store.Load()
-
 	// Configuration setup
 	config.CleanEnv()
 	config.Logger()
+
+	// Initialize database
+	models.VMPreload()
+	models.ClusterPreload()
+	db.Setup(filepath.Join(config.Dir(), "db.sqlite"))
 }
 
 func main() {

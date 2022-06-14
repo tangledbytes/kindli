@@ -16,23 +16,26 @@ limitations under the License.
 package vm
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/spf13/cobra"
+	"github.com/utkarsh-pro/kindli/pkg/utils"
+	"github.com/utkarsh-pro/kindli/pkg/vm"
 )
 
-// VMCmd represents the preq command
-var VMCmd = &cobra.Command{
-	Use:   "vm",
-	Short: "Commands for managing lifecycle of kindli virtual machine",
+// ListCmd represents the shell command
+var ListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "Prints the list of VMs",
+	Run: func(cmd *cobra.Command, args []string) {
+		vms, err := RunList()
+		utils.ExitIfNotNil(err)
+
+		fmt.Println(strings.Join(vms, "\n"))
+	},
 }
 
-func init() {
-	VMCmd.AddCommand(
-		StartCmd,
-		StopCmd,
-		DeleteCmd,
-		RestartCmd,
-		StatusCmd,
-		ShellCmd,
-		ListCmd,
-	)
+func RunList() ([]string, error) {
+	return vm.List()
 }
