@@ -25,15 +25,16 @@ import (
 var LoadCmd = &cobra.Command{
 	Use:     "load",
 	Short:   "Load OCI images in the VM",
-	Example: `kindli image <image-name> <cluster-name>`,
-	Args:    cobra.MatchAll(cobra.MinimumNArgs(1), cobra.MaximumNArgs(2)),
+	Example: `kindli image <image-name>`,
 	Run: func(cmd *cobra.Command, args []string) {
 		image := args[0]
-		cluster := ""
 
-		if len(args) == 2 {
-			cluster = args[1]
-		}
+		vm, err := cmd.Flags().GetString("vm-name")
+		utils.ExitIfNotNil(err)
+		cluster, err := cmd.Flags().GetString("cluster-name")
+		utils.ExitIfNotNil(err)
+
+		cluster = utils.CreateClusterName(cluster, vm)
 
 		utils.ExitIfNotNil(RunLoad(image, cluster))
 	},
