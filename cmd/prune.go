@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/utkarsh-pro/kindli/cmd/vm"
 	"github.com/utkarsh-pro/kindli/pkg/config"
@@ -41,10 +42,14 @@ Prune process will perform the following operations:
 			utils.ExitIfNotNil(err)
 
 			// Stop the running VM
-			utils.ExitIfNotNil(vm.RunStop(name))
+			if err := vm.RunStop(name); err != nil {
+				logrus.Warn("Failed to stop VM: ", err)
+			}
 
 			// Delete the VM
-			utils.ExitIfNotNil(vm.RunDelete(name))
+			if err := vm.RunDelete(name); err != nil {
+				logrus.Error("Failed to delete VM: ", err)
+			}
 
 			return
 		}
@@ -54,14 +59,21 @@ Prune process will perform the following operations:
 
 		for _, name := range vms {
 			// Stop the running VM
-			utils.ExitIfNotNil(vm.RunStop(name))
+			if err := vm.RunStop(name); err != nil {
+				logrus.Warn("Failed to stop VM: ", err)
+			}
 
 			// Delete the VM
-			utils.ExitIfNotNil(vm.RunDelete(name))
+			if err := vm.RunDelete(name); err != nil {
+				logrus.Error("Failed to delete VM: ", err)
+			}
 		}
 
 		// Cleanup dirs
-		utils.ExitIfNotNil(config.CleanupDir())
+		if err := config.CleanupDir(); err != nil {
+			logrus.Error("Failed to cleanup ~/.kindli: ", err)
+			logrus.Info("You can remove ~/.kindli manually")
+		}
 	},
 }
 
