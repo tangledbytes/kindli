@@ -18,11 +18,11 @@ var (
 
 // Install install metallb in the given cluster
 func Install(clusterName string) error {
-	if err := sh.Run("kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml"); err != nil {
+	if err := sh.Run("kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.4/manifests/namespace.yaml"); err != nil {
 		return fmt.Errorf("failed to install metallb: %w", err)
 	}
 
-	if err := sh.Run("kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/metallb.yaml"); err != nil {
+	if err := sh.Run("kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.4/manifests/metallb.yaml"); err != nil {
 		return fmt.Errorf("failed to install metallb: %w", err)
 	}
 
