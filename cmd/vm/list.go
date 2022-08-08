@@ -24,7 +24,7 @@ import (
 	"github.com/utkarsh-pro/kindli/pkg/vm"
 )
 
-// ListCmd represents the shell command
+// ListCmd represents the list command
 var ListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "Prints the list of VMs",
