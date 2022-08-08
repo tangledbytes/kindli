@@ -48,6 +48,7 @@ func init() {
 		DeleteCmd,
 		InitCmd,
 		PruneCmd,
+		DockerEnvCmd,
 	)
 
 	RootCmd.PersistentFlags().String("vm-name", "kindli", "Name of the VM")
