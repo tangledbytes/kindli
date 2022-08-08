@@ -35,7 +35,7 @@ var CreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a new kind cluster",
 	Run: func(cmd *cobra.Command, args []string) {
-		name, err := cmd.Flags().GetString("cluster-name")
+		name, err := cmd.Flags().GetString("vm-name")
 		utils.ExitIfNotNil(err)
 
 		cname, err := cmd.Flags().GetString("cluster-name")
