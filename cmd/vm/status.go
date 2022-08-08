@@ -28,10 +28,20 @@ var StatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Status of Kindli VM",
 	Run: func(cmd *cobra.Command, args []string) {
-		name, err := cmd.Flags().GetString("vm-name")
-		utils.ExitIfNotNil(err)
+		name, _ := cmd.Flags().GetString("vm-name")
+		all, _ := cmd.Flags().GetBool("all")
+
+		if all {
+			utils.ExitIfNotNil(RunStatus(""))
+			return
+		}
+
 		utils.ExitIfNotNil(RunStatus(name))
 	},
+}
+
+func init() {
+	StatusCmd.Flags().BoolP("all", "A", false, "Show status of all VMs")
 }
 
 func RunStatus(name string) error {
