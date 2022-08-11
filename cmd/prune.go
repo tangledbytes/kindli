@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/utkarsh-pro/kindli/cmd/vm"
 	"github.com/utkarsh-pro/kindli/pkg/config"
+	"github.com/utkarsh-pro/kindli/pkg/sh"
 	"github.com/utkarsh-pro/kindli/pkg/utils"
 )
 
@@ -32,7 +33,8 @@ var PruneCmd = &cobra.Command{
 Prune process will perform the following operations:
 1. Stop all of the running VMs
 2. Delete all of the VMs
-3. Cleanup the ~/.kindli directory`,
+3. Cleanup the ~/.kindli directory
+4. Optionally clean up the lima cache`,
 	Run: func(cmd *cobra.Command, args []string) {
 		all, err := cmd.Flags().GetBool("all")
 		utils.ExitIfNotNil(err)
@@ -74,9 +76,19 @@ Prune process will perform the following operations:
 			logrus.Error("Failed to cleanup ~/.kindli: ", err)
 			logrus.Info("You can remove ~/.kindli manually")
 		}
+
+		// Cleanup lima config
+		cleanLima, err := cmd.Flags().GetBool("clean-lima")
+		utils.ExitIfNotNil(err)
+		if cleanLima {
+			if err := sh.Run("limactl prune"); err != nil {
+				logrus.Error("Failed to remove lima cache: ", err)
+			}
+		}
 	},
 }
 
 func init() {
 	PruneCmd.Flags().BoolP("all", "a", true, "If true, prune will delete all of the VMs")
+	PruneCmd.Flags().Bool("clean-lima", false, "If true, prune will clear lima cache")
 }
