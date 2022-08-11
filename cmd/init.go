@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/utkarsh-pro/kindli/cmd/network"
 	"github.com/utkarsh-pro/kindli/cmd/preq"
 	"github.com/utkarsh-pro/kindli/cmd/vm"
 	"github.com/utkarsh-pro/kindli/pkg/utils"
@@ -35,9 +34,8 @@ var InitCmd = &cobra.Command{
 
 Initialization process will perform the following operations:
 1. Install all the prerequisites (can be skipped, see the flags)
-2. Start kindli default VM
-3. Create a default kind cluster in the VM
-4. Setup e2e networking to the KinD network`,
+2. Start a VM
+3. Create a default kind cluster in the VM`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// 1. Install preqs
 		if !skipPreqInstall {
@@ -56,9 +54,6 @@ Initialization process will perform the following operations:
 
 		// 3. Create default cluster
 		utils.ExitIfNotNil(RunCreate(cname, name))
-
-		// 4. Setup e2e networking
-		utils.ExitIfNotNil(network.RunSetup(name))
 	},
 }
 
