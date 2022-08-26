@@ -58,7 +58,7 @@ func init() {
 	StartCmd.Flags().StringVar(&mem, "mem", "16GiB", "specify memory to be assigned to VM")
 	StartCmd.Flags().StringVar(&disk, "disk", "100GiB", "specify disk space assigned to the VM")
 	StartCmd.Flags().StringVar(&arch, "arch", "", "VM architecture")
-	StartCmd.Flags().StringSliceVar(&mounts, "mount", nil, "specify mounts in form of <PATH>:rw to make the mount available for read/write or in form of <PATH>:ro ti make the mount available only for reading")
+	StartCmd.Flags().StringSliceVar(&mounts, "mount", nil, "specify mounts in form of <PATH>:rw to make the mount available for read/write or in form of <PATH>:ro to make the mount available only for reading")
 }
 
 func RunStart(name string) error {
