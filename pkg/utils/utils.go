@@ -1,11 +1,12 @@
 package utils
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
+	"os"
+	"os/signal"
 	"runtime/debug"
 	"strconv"
+	"syscall"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -233,20 +234,11 @@ func ConvertMapInterfaceMapString(v interface{}) interface{} {
 	return v
 }
 
-// Any takes any data and converts it into another data
-//
-// Internally it converts typ1 to json byt and then convert it back
-// to typ2 hence it is RREQUIRED for both of the types to be encodable
-// in JSON or else the function will return error
-func AnyToAny(typ1, typ2 interface{}) error {
-	byt, err := json.Marshal(typ1)
-	if err != nil {
-		return errors.New("failed to convert")
-	}
+// SigIntHandler takes a handler which will be called when SIGINT is received
+func SigIntHandler(handler func()) {
+	ch := make(chan os.Signal)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	<-ch
 
-	if err := json.Unmarshal(byt, &typ2); err != nil {
-		return errors.New("failed to convert")
-	}
-
-	return nil
+	handler()
 }
