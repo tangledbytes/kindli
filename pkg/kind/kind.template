@@ -9,7 +9,7 @@ networking:
   serviceSubnet: {{.networking.serviceSubnet}}
   podSubnet: {{.networking.podSubnet}}
 {{- if .networking.ipFamily }}
-  ipFamily: {{.networking.ipFamily}}
+  ipFamily: {{or .networking.ipFamily "dual"}}
 {{- end }}
 {{- if .networking.apiServerAddress }}
   apiServerAddress: {{.network.apiServerAddress}}
