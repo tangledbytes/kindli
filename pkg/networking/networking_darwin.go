@@ -5,73 +5,112 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	"github.com/utkarsh-pro/kindli/pkg/models"
 	"github.com/utkarsh-pro/kindli/pkg/sh"
+	"github.com/utkarsh-pro/kindli/pkg/utils"
 )
 
+const disableIPv6 = true
+
 func Setup(vmName string) error {
-	srcIP, err := sh.RunIO("ifconfig bridge100 | grep 'inet ' | cut -d' ' -f2")
+	if err := setupPacketRoutingInsideVM(vmName); err != nil {
+		return fmt.Errorf("failed to setup packet routing inside VM: %s", err)
+	}
+
+	if err := setupPacketRoutingOnHost(vmName); err != nil {
+		return fmt.Errorf("failed to setup packet routing on host: %s", err)
+	}
+
+	utils.SigIntHandler(func() {
+		if err := Cleanup(vmName); err != nil {
+			logrus.Error("failed to cleanup networking: ", err)
+			logrus.Warn("please cleanup networking manually - `kindli network cleanup --vm-name <vm-name>`")
+		}
+	})
+
+	return nil
+}
+
+func Cleanup(vmName string) error {
+	vm := models.NewVM(vmName, "", 0)
+	if err := vm.GetByName(); err != nil {
+		return fmt.Errorf("failed to get VM by name: %w", err)
+	}
+
+	limaVMIPv4 := vm.GetVMIPv4()
+	ipv4Subnetprefix, err := GetIPv4SubnetPrefix("kind")
 	if err != nil {
-		return fmt.Errorf("failed to get bridge100 interface IPv4 address: %s", err)
+		return fmt.Errorf("failed to get IPv4 subnet prefix: %w", err)
 	}
-	logrus.Debug("Bridge100 IP:", srcIP)
-
-	limaIPAddr, err := getLimaVMIPAddress(vmName)
-	if err != nil {
-		return fmt.Errorf("failed to get VM internal interace IP address: %s", err)
-	}
-	logrus.Debug("Lima IP Address:", limaIPAddr)
-
-	if err := sh.Run(fmt.Sprintf("sudo route -nv add -net 172.18 %s", trim([]byte(limaIPAddr)))); err != nil {
-		return fmt.Errorf("failed to setup route from system to VM: %s", err)
+	if err := sh.Run(fmt.Sprintf("sudo route -nv delete -net %s %s", ipv4Subnetprefix, limaVMIPv4)); err != nil {
+		return fmt.Errorf("failed to cleanup route from system to VM: %s", err)
 	}
 
-	kindIf, err := sh.RunIO(fmt.Sprintf("limactl shell %s -- ip -o link show | awk -F': ' '{print $2}' | grep 'br-'", vmName))
-	if err != nil {
-		return fmt.Errorf("failed to get kind network interface name: %s", err)
-	}
-
-	destNet := "172.18.0.0/16"
-	hostIf := "lima0"
-
-	if err := sh.Run(
-		fmt.Sprintf(
-			"limactl shell %s -- sudo iptables -t filter -A FORWARD -4 -p tcp -s %s -d %s -j ACCEPT -i %s -o %s",
-			vmName,
-			trim(srcIP),
-			destNet,
-			hostIf,
-			trim(kindIf),
-		),
-	); err != nil {
-		return fmt.Errorf("failed to setup route from VM network interface to kind network interface")
+	if !disableIPv6 {
+		limaVMIPv6 := vm.GetVMIPv6()
+		ipv6Subnetprefix, err := GetIPv6SubnetPrefix("kind")
+		if err != nil {
+			return fmt.Errorf("failed to get IPv6 subnet prefix: %w", err)
+		}
+		if err := sh.Run(fmt.Sprintf("sudo route -nv delete -inet6 %s:: %s", ipv6Subnetprefix, limaVMIPv6)); err != nil {
+			return fmt.Errorf("failed to cleanup route from system to VM: %s", err)
+		}
 	}
 
 	return nil
 }
 
-func getLimaVMIPAddress(vmName string) (string, error) {
-	// Try on lima0 interface
-	limaIPAddr, err := sh.RunIO(
-		fmt.Sprintf(
-			"limactl shell %s -- ip -o -4 a s | grep lima0 | grep -E -o 'inet [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}' | cut -d' ' -f2",
-			vmName,
-		),
+func setupPacketRoutingInsideVM(vmName string) error {
+	kindIf, err := sh.RunIO(fmt.Sprintf("limactl shell %s -- ip -o link show | awk -F': ' '{print $2}' | grep 'br-'", vmName))
+	if err != nil {
+		return fmt.Errorf("failed to get kind network interface name: %s", err)
+	}
+
+	hostIf := "lima0"
+
+	// Forward all the packets that are coming from the host interface to the kind network interface
+	cmd := fmt.Sprintf(
+		"limactl shell %s -- sudo iptables -t filter -A FORWARD -4 -p tcp -s 192.168.105.1 -d 172.18.0.0/16 -j ACCEPT -i %s -o %s",
+		vmName,
+		hostIf,
+		trim(kindIf),
 	)
-	if err == nil && string(limaIPAddr) != "" {
-		return string(limaIPAddr), nil
+	if err := sh.Run(cmd); err != nil {
+		return fmt.Errorf("failed to setup route from VM network interface to kind network interface: %w", err)
 	}
 
-	// Try on the eth0 interface
-	limaIPAddr, err = sh.RunIO(
-		fmt.Sprintf(
-			"limactl shell %s -- ip -o -4 a s | grep eth0 | grep -E -o 'inet [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}' | cut -d' ' -f2",
-			vmName,
-		))
-	if err == nil && string(limaIPAddr) != "" {
-		return string(limaIPAddr), nil
+	return nil
+}
+
+func setupPacketRoutingOnHost(vmName string) error {
+	vm := models.NewVM(vmName, "", 0)
+	if err := vm.GetByName(); err != nil {
+		return fmt.Errorf("failed to get VM by name: %w", err)
 	}
 
-	return "", fmt.Errorf("failed to get VM internal interace")
+	// IPv4 Routing
+	limaVMIPv4 := vm.GetVMIPv4()
+	ipv4Subnetprefix, err := GetIPv4SubnetPrefix("kind")
+	if err != nil {
+		return fmt.Errorf("failed to get IPv4 subnet prefix: %w", err)
+	}
+	if err := sh.Run(fmt.Sprintf("sudo route -nv add -net %s %s", ipv4Subnetprefix, limaVMIPv4)); err != nil {
+		return fmt.Errorf("failed to setup route from system to VM: %s", err)
+	}
+
+	// IPv6 Routing
+	if !disableIPv6 {
+		limaVMIPv6 := vm.GetVMIPv6()
+		ipv6Subnetprefix, err := GetIPv6SubnetPrefix("kind")
+		if err != nil {
+			return fmt.Errorf("failed to get IPv6 subnet prefix: %w", err)
+		}
+		if err := sh.Run(fmt.Sprintf("sudo route -nv add -inet6 %s:: %s", ipv6Subnetprefix, limaVMIPv6)); err != nil {
+			return fmt.Errorf("failed to setup route from system to VM: %s", err)
+		}
+	}
+
+	return nil
 }
 
 func trim(data []byte) string {
