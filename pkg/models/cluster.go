@@ -1,6 +1,8 @@
 package models
 
-import "github.com/utkarsh-pro/kindli/pkg/db"
+import (
+	"github.com/utkarsh-pro/kindli/pkg/db"
+)
 
 type Cluster struct {
 	ID             uint

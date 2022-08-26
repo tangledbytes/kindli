@@ -205,6 +205,10 @@ func createLimaVMConfig(overrides map[string]interface{}, vm *models.VM) error {
 	overrides["vmName"] = vm.Name
 	overrides["dockerPort"] = vm.DockerPort
 
+	vmID, err := models.GetNextVMID() // This ID will be assigned to the VM automatically
+	overrides["VMIPv4"] = models.GetVMIPv4(vmID)
+	overrides["VMIPv6"] = models.GetVMIPv6(vmID)
+
 	file, err := os.Create(vm.LimaConfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to create VM config file: %w", err)

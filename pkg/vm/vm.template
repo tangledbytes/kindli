@@ -1,7 +1,16 @@
 images:
-  - location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-amd64.img"
+  # Try to use release-yyyyMMdd image if available. Note that release-yyyyMMdd will be removed after several months.
+  - location: "https://cloud-images.ubuntu.com/releases/22.04/release-20220712/ubuntu-22.04-server-cloudimg-amd64.img"
     arch: "x86_64"
-  - location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-arm64.img"
+    digest: "sha256:86481acb9dbd62e3e93b49eb19a40c66c8aa07f07eff10af20ddf355a317e29f"
+  - location: "https://cloud-images.ubuntu.com/releases/22.04/release-20220712/ubuntu-22.04-server-cloudimg-arm64.img"
+    arch: "aarch64"
+    digest: "sha256:e1ce033239f0038dca5ef09e582762ba0d0dfdedc1d329bc51bb0e9f5057af9d"
+  # Fallback to the latest release image.
+  # Hint: run `limactl prune` to invalidate the cache
+  - location: "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img"
+    arch: "x86_64"
+  - location: "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-arm64.img"
     arch: "aarch64"
 
 cpus: {{or .CPU 4}}
@@ -27,25 +36,30 @@ provision:
     script: |
       #!/bin/bash
       set -eux -o pipefail
+
       export DEBIAN_FRONTEND=noninteractive
+
       # https://kind.sigs.k8s.io/docs/user/known-issues/#pod-errors-due-to-too-many-open-files
       sysctl fs.inotify.max_user_watches=524288
       sysctl fs.inotify.max_user_instances=512
+
+      # Force this IP on the lima0 interface
+      # ip a add 192.168.105.1/24 dev lima0
+      ip a add {{or .VMIPv4 "192.168.105.23"}} dev lima0
+
+      # Install Docker on the VM
       curl -fsSL https://get.docker.com | sh
-      apt-get install -y net-tools traceroute arping jq
       groupadd docker || true
       usermod -aG docker {{.user}}
 
-      nerdctl run --privileged --rm tonistiigi/binfmt --install all
+      apt-get install -y net-tools traceroute arping jq
 
-      mkdir -p /etc/systemd/system/docker.service.d
-      printf "[Service]\nExecStart=\nExecStart=/usr/bin/dockerd -H unix:// -H tcp://0.0.0.0:{{or .dockerPort 2375}}" > /etc/systemd/system/docker.service.d/options.conf
-      systemctl daemon-reload
+      nerdctl run --privileged --rm tonistiigi/binfmt --install all
 probes:
   - script: |
       #!/bin/bash
       set -eux -o pipefail
-      if ! timeout 30s bash -c "until command -v docker >/dev/null 2>&1; do sleep 3; done"; then
+      if ! timeout 30s bash -c "until command -v docker >/dev/null 2>&1; do sleep 2; done"; then
         echo >&2 "Docker is not installed yet"
         exit 1
       fi
@@ -53,10 +67,11 @@ probes:
 portForwards:
   - guestSocket: "/run/docker.sock"
     hostSocket: "{{"{{.Home}}"}}/.kindli/{{.vmName}}.sock"
-
+hostResolver:
+  hosts:
+    host.docker.internal: host.lima.internal
 networks:
   - lima: shared
-
 useHostResolver: false
 dns:
   - 1.1.1.1

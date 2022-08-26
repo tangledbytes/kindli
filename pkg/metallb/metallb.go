@@ -6,8 +6,8 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/utkarsh-pro/kindli/pkg/docker"
 	"github.com/utkarsh-pro/kindli/pkg/models"
+	"github.com/utkarsh-pro/kindli/pkg/networking"
 	"github.com/utkarsh-pro/kindli/pkg/sh"
 )
 
@@ -18,11 +18,11 @@ var (
 
 // Install install metallb in the given cluster
 func Install(clusterName string) error {
-	if err := sh.Run("kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.4/manifests/namespace.yaml"); err != nil {
+	if err := sh.Run("kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml"); err != nil {
 		return fmt.Errorf("failed to install metallb: %w", err)
 	}
 
-	if err := sh.Run("kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.4/manifests/metallb.yaml"); err != nil {
+	if err := sh.Run("kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/metallb.yaml"); err != nil {
 		return fmt.Errorf("failed to install metallb: %w", err)
 	}
 
@@ -35,11 +35,6 @@ func Install(clusterName string) error {
 
 // Configure configures metallb in the given cluster
 func Configure(clusterName string) error {
-	networkPrefix, err := docker.NetworkInspect("kind", "{{ join (slice (split (index .IPAM.Config 0 \"Subnet\") \".\") 0 2) \".\" }}")
-	if err != nil {
-		return fmt.Errorf("failed to configure metallb: %w", err)
-	}
-
 	c := models.NewCluster(clusterName, "", "")
 	if err := c.GetByName(); err != nil {
 		return fmt.Errorf("failed to find cluster with name \"%s\": %w", clusterName, err)
@@ -50,7 +45,12 @@ func Configure(clusterName string) error {
 		return fmt.Errorf("cannot configure more than 99 instances")
 	}
 
-	cfg := createNetworkConfig(networkPrefix, intID)
+	ipv4SubnetPrefix, ipv6SubnetPrefix, err := getSubnetPrefix("kind")
+	if err != nil {
+		return fmt.Errorf("failed to configure metallb: %w", err)
+	}
+
+	cfg := createNetworkConfig(ipv4SubnetPrefix, ipv6SubnetPrefix, intID)
 
 	cfgPath, err := createConfig(cfg)
 	if err != nil {
@@ -64,10 +64,32 @@ func Configure(clusterName string) error {
 	return nil
 }
 
-func createNetworkConfig(subnetPrefix string, instanceID int) map[string]interface{} {
-	return map[string]interface{}{
-		"addresses": fmt.Sprintf("%s.%d.1-%s.1%02d.254", subnetPrefix, instanceID+1, subnetPrefix, instanceID+1),
+func getSubnetPrefix(network string) (string, string, error) {
+	ipv4, err := networking.GetIPv4SubnetPrefix(network)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get ipv4 subnet prefix: %w", err)
 	}
+	ipv6, err := networking.GetIPv6SubnetPrefix(network)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get ipv6 subnet prefix: %w", err)
+	}
+
+	return ipv4, ipv6, nil
+}
+
+func createNetworkConfig(ipv4SubnetPrefix, ipv6SubnetPrefix string, instanceID int) map[string]interface{} {
+	return map[string]interface{}{
+		"ipv4Range": createIPv4NetworkConfig(ipv4SubnetPrefix, instanceID),
+		"ipv6Range": createIPv6NetworkConfig(ipv6SubnetPrefix, instanceID),
+	}
+}
+
+func createIPv4NetworkConfig(subnetPrefix string, instanceID int) string {
+	return fmt.Sprintf("%s.%x.0/24", subnetPrefix, instanceID+1)
+}
+
+func createIPv6NetworkConfig(subnetPrefix string, instanceID int) string {
+	return fmt.Sprintf("%s:%x::", subnetPrefix, instanceID+1)
 }
 
 func createConfig(cfg map[string]interface{}) (string, error) {

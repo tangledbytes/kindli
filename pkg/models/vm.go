@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/utkarsh-pro/kindli/pkg/db"
 )
@@ -65,6 +66,14 @@ func (vm *VM) GetByName() error {
 	return nil
 }
 
+func (vm *VM) GetVMIPv4() string {
+	return GetVMIPv4(vm.ID)
+}
+
+func (vm *VM) GetVMIPv6() string {
+	return GetVMIPv6(vm.ID)
+}
+
 func GetMaxVMDockerPort() (int, error) {
 	var maxPort sql.NullInt64
 	err := db.Instance().QueryRow(`SELECT MAX(docker_port) FROM vm`).Scan(&maxPort)
@@ -78,6 +87,29 @@ func GetMaxVMDockerPort() (int, error) {
 	}
 
 	return int(maxPort.Int64), nil
+}
+
+func GetVMIPv4(id uint) string {
+	return fmt.Sprintf("192.168.105.%d", id+10)
+}
+
+func GetVMIPv6(id uint) string {
+	return fmt.Sprintf("::ffff:%s", GetVMIPv4(id))
+}
+
+func GetNextVMID() (uint, error) {
+	var id sql.NullInt64
+	err := db.Instance().QueryRow(`SELECT MAX(id) FROM vm`).Scan(&id)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
+
+		return 0, err
+	}
+
+	return uint(id.Int64) + 1, nil
 }
 
 func ListVM() ([]*VM, error) {
