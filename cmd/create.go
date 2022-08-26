@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,7 +27,8 @@ import (
 )
 
 var (
-	cfg string
+	cfg         string
+	skipMetallb bool
 )
 
 // CreateCmd represents create command
@@ -47,6 +48,7 @@ var CreateCmd = &cobra.Command{
 
 func init() {
 	CreateCmd.Flags().StringVarP(&cfg, "config", "c", "", "kind configuration")
+	CreateCmd.Flags().BoolVarP(&skipMetallb, "skip-metallb", "s", false, "skip metallb setup")
 }
 
 func RunCreate(name string, vmName string) error {
@@ -71,8 +73,9 @@ func RunCreate(name string, vmName string) error {
 
 	// Create the kind cluster
 	err = kind.Create(cfg, kind.CreateConfig{
-		Name:   utils.CreateClusterName(name, vmName),
-		VMName: vmName,
+		Name:        utils.CreateClusterName(name, vmName),
+		VMName:      vmName,
+		SkipMetalLB: skipMetallb,
 	})
 	if err != nil {
 		return err

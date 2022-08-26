@@ -28,8 +28,9 @@ var (
 )
 
 type CreateConfig struct {
-	Name   string
-	VMName string
+	Name        string
+	VMName      string
+	SkipMetalLB bool
 }
 
 func init() {
@@ -70,8 +71,10 @@ func Create(cfgPath string, cfg CreateConfig) error {
 	}
 
 	// Create metallb for the kind cluster
-	if err := metallb.Install(name); err != nil {
-		return fmt.Errorf("failed to create metallb config for the kind cluster: %w", err)
+	if !cfg.SkipMetalLB {
+		if err := metallb.Install(name); err != nil {
+			return fmt.Errorf("failed to create metallb config for the kind cluster: %w", err)
+		}
 	}
 
 	return nil
