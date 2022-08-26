@@ -3,9 +3,9 @@
 Kindli stands for KinD in Lima. Kindli is a CLI written ONLY for MacOS to help setup a VM and run upto 100 kind clusters in them with e2e networking setup. 
 
 Kindli can setup the following:
-1. Create a VM with bidirectional networking enabled. VM supports running both Intel on ARM and ARM on Intel.
-2. Create upto 100 KinD clusters. For KinD, users can bring in custom KinD configs as well.
-3. Setup MetalLB to get LoadBalancer working within the cluster.
+1. Create upto 200 VMs (if you can 🤷‍♂️) with bidirectional networking enabled. VM supports running both Intel on ARM and ARM on Intel.
+2. Create upto 100 KinD clusters per VM. For KinD, users can bring in custom KinD configs as well.
+3. Setup MetalLB to get LoadBalancer working within the cluster. E2E networking is **not** supported for IPv6 type clusters.
 4. Run `amd64` images on `arm` clusters and `arm` images on `amd64` clusters.
 
 ## Install
@@ -22,22 +22,19 @@ $ kindli init
 
 Running the above will:
 1. Install the prerequisites for running kindli
-2. Setup the VM
-3. Setup networking
-4. Create a default KinD cluster
-5. Setup docker to use docker daemon running in the VM
+2. Setup default VM with name "kindli"
+3. Create a default KinD cluster
+4. Setup docker to use docker daemon running in the VM
 
 Kindli is written only for MacOS and hence the prequisite installation uses `brew` at places. If automatic prerequisite installation is not desirable then pass the flag `--skip-preq-install` to the above the command. To see the prerequisites, run `kindli preq check`.
 
-**Kindli requires root access during the init process to setup the routing table.** If this is undesirable, then instead of running `kindli init`. Setup the enviroment manually:
+`init` setup is just an elaborate way of the following
 ```bash
-$ kindli vm start --cpu 4 --mem "16GiB" --mount $HOME:ro # Start the VM
+$ kindli vm start --cpu 4 --mem "16GiB" --mount $HOME:ro # Start default VM
 ...
 $ kindli vm restart # Restart the VM - Required to setup docker sockets
 ...
 $ kindli create # Create a default cluster
-...
-$ kindli network setup # Setup e2e networking - Optional (Makes LoadBalancer IP would be reachable from Host)
 ...
 ```
 
@@ -53,9 +50,8 @@ init will initialize kindli
 
 Initialization process will perform the following operations:
 1. Install all the prerequisites (can be skipped, see the flags)
-2. Start kindli default VM
+2. Start a VM
 3. Create a default kind cluster in the VM
-4. Setup e2e networking to the KinD network
 
 Usage:
   kindli init [flags]
@@ -65,14 +61,18 @@ Flags:
       --cpu int             specify number of cpu assigned to VM (default 4)
       --disk string         specify disk space assigned to the VM (default "100GiB")
   -h, --help                help for init
-      --mem string          specify memory to be assigned to VM (default "8GiB")
-      --mount strings       specify mounts in form of <PATH>:rw to make the mount available for read/write or in form of <PATH>:ro ti make the mount available only for reading
+      --mem string          specify memory to be assigned to VM (default "16GiB")
+      --mount strings       specify mounts in form of <PATH>:rw to make the mount available for read/write or in form of <PATH>:ro to make the mount available only for reading
       --skip-preq-install   if set to true, prerequisite install will be skipped
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
 ```
 
 ### Create
 
-Create command creates a new KinD cluster. It is similar to running `kind create cluster` but does some additional things like setting up networking.
+Create command creates a new KinD cluster. It is similar to running `kind create cluster` but does some additional things like setting up metalLB for loadbalancers (can be skipped via `--skip-metallb`).
 
 ```
 $ kindli create -h
@@ -84,7 +84,11 @@ Usage:
 Flags:
   -c, --config string   kind configuration
   -h, --help            help for create
-      --name string     kind cluster name
+  -s, --skip-metallb    skip metallb setup
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
 ```
 
 ### Delete
@@ -96,10 +100,14 @@ $ kindli delete -h
 Delete given kind cluster
 
 Usage:
-  kindli delete <cluster-name> [flags]
+  kindli delete [flags]
 
 Flags:
   -h, --help   help for delete
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
 ```
 
 ### Prune
@@ -111,20 +119,27 @@ $ kindli prune
 prune will prune kindli
 
 Prune process will perform the following operations:
-1. Stop the running VM
-2. Delete the VM
+1. Stop all of the running VMs
+2. Delete all of the VMs
 3. Cleanup the ~/.kindli directory
+4. Optionally clean up the lima cache
 
 Usage:
   kindli prune [flags]
 
 Flags:
-  -h, --help   help for prune
+  -a, --all          If true, prune will delete all of the VMs (default true)
+      --clean-lima   If true, prune will clear lima cache
+  -h, --help         help for prune
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
 ```
 
 ### VM Start
 
-`kindli vm start` starts the kindli VM with the given configuration. It should be noted that the VM can be started only once.
+`kindli vm start` starts the kindli VM with the given configuration. It should be noted that no more than 200 VMs might be created via Kindli. 
 
 ```
 $ kindli vm start -h
@@ -140,16 +155,19 @@ Flags:
       --cpu int         specify number of cpu assigned to VM (default 4)
       --disk string     specify disk space assigned to the VM (default "100GiB")
   -h, --help            help for start
-      --mem string      specify memory to be assigned to VM (default "8GiB")
-      --mount strings   specify mounts in form of <PATH>:rw to make the mount available for read/write or in form of <PATH>:ro ti make the mount available only for reading
+      --mem string      specify memory to be assigned to VM (default "16GiB")
+      --mount strings   specify mounts in form of <PATH>:rw to make the mount available for read/write or in form of <PATH>:ro to make the mount available only for reading
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
 ```
 
 ### VM Stop
 
-`kindli vm stop` will stop the running VM. It should be noted that the VM should be in running state or else the command will throw error.
+`kindli vm stop` will stop the given (or default) VM. It should be noted that the VM should be in running state or else the command will throw error.
 
 ```
-$ kindli vm stop -h
 Stop running Kindli VM
 
 Usage:
@@ -157,11 +175,15 @@ Usage:
 
 Flags:
   -h, --help   help for stop
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
 ```
 
 ### VM Restart
 
-`kindli vm restart` will restart the running VM. It expects the VM to be running state.
+`kindli vm restart` will restart the given (or default) VM. It expects the VM to be running state.
 
 ```
 $ kindli vm restart -h
@@ -172,11 +194,15 @@ Usage:
 
 Flags:
   -h, --help   help for restart
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
 ```
 
 ### VM Status
 
-`kindli vm status` shows the status of the running VM.
+`kindli vm status` shows the status of all the VMs.
 
 ```
 $ kindli vm status -h
@@ -186,12 +212,17 @@ Usage:
   kindli vm status [flags]
 
 Flags:
+  -A, --all    Show status of all VMs
   -h, --help   help for status
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
 ```
 
 ### VM Shell
 
-`kindli vm shell` starts a shell session with the running VM. It is like SSHing into the VM.
+`kindli vm shell` starts a shell session with the given (or default) VM. It is like SSHing into the VM.
 
 ```
 $ kindli vm shell -h
@@ -202,6 +233,10 @@ Usage:
 
 Flags:
   -h, --help   help for shell
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
 ```
 
 ### Preq Check
@@ -220,6 +255,10 @@ Aliases:
 
 Flags:
   -h, --help   help for check
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
 ```
 
 ### Preq Install
@@ -237,32 +276,35 @@ Aliases:
   install, i
 
 Flags:
-  -h, --help   help for instal
+  -h, --help   help for install
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
 ```
 
 ### Network Setup
 
-`kindli network setup` setups the networking between Host Machine, VM and KinD Docker Network. Requires root access.
+`kindli network setup` setups the networking between Host Machine, given (or default) VM and KinD Docker Network inside the VM. **Requires root access**. It should be noted that E2E networking although can be setup with multiple VMs at once but should ideally be established with one VM at a time only (and this is the only workflow that is tested). This command haults and will keep the connection alive till it is terminated by pressing `CTRL+C` (SIGINT).
 
 ```
 $ kindli network setup -h
 setup e2e networking with cluster
 
 Usage:
-  kindli network [command]
-
-Available Commands:
-  setup       setup e2e networking with cluster
+  kindli network setup [flags]
 
 Flags:
-  -h, --help   help for network
+  -h, --help   help for setup
 
-Use "kindli network [command] --help" for more information about a command.
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
 ```
 
 ### Image Load
 
-`kindli image load` loads docker image from host machine into the given KinD cluster. If not cluster name is given then default cluster is selected,
+`kindli image load` loads docker image from host machine into the given KinD cluster. If cluster name is not given then default cluster is selected. Use `kindli docker-env --vm-name <desired-vm>` to point to the right VM.
 
 ```
 $ kindli image load -h
@@ -272,8 +314,32 @@ Usage:
   kindli image load [flags]
 
 Examples:
-kindli image <image-name> <cluster-name>
+kindli image <image-name>
 
 Flags:
   -h, --help   help for load
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
+```
+
+
+### Docker Env Setup
+
+`kindli docker-env --vm-name <vm-name>` can be used to point docker client on the host machine to the docker daemon running in the given VM.
+
+```
+$ kindli docker-env --vm-name <vm-name>
+docker-env sets the docker context of the given cluster
+
+Usage:
+  kindli docker-env [flags]
+
+Flags:
+  -h, --help   help for docker-env
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
 ```
