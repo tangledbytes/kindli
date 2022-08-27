@@ -110,6 +110,26 @@ Global Flags:
       --vm-name string        Name of the VM (default "kindli")
 ```
 
+### List
+
+List command lists the KinD clusters running in the VMs. A VM name can be specified via `--vm-name` flag, if no flag is provided then clusters running in the default VM are listed. `-A` or `--all` can be used to list clusters in all of the VMs.
+
+```
+$ kindli vm list -h
+list commands lists all of the KinD clusters
+
+Usage:
+  kindli list [flags]
+
+Flags:
+  -A, --all    Set to list clusters of all the Kindli VMs
+  -h, --help   help for list
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
+```
+
 ### Prune
 
 Prune command will clearup all of the Kindli created entities on the user's system (except the prerequisites installed).
@@ -233,6 +253,26 @@ Usage:
 
 Flags:
   -h, --help   help for shell
+
+Global Flags:
+      --cluster-name string   Name of the cluster (default "kindli")
+      --vm-name string        Name of the VM (default "kindli")
+```
+
+### VM Edit
+
+`kindli vm edit --vm-name <vm-name>` opens an editor which can be used to edit the lima config of the VM. Refer [Lima default config](https://github.com/lima-vm/lima/blob/master/examples/default.yaml) for reference.
+
+```
+$ kindli vm edit -h
+
+Edit Kindli VM
+
+Usage:
+  kindli vm edit [flags]
+
+Flags:
+  -h, --help   help for edit
 
 Global Flags:
       --cluster-name string   Name of the cluster (default "kindli")
