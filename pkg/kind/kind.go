@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"os"
 	"path/filepath"
+	"text/tabwriter"
 
 	"github.com/sirupsen/logrus"
 	"github.com/utkarsh-pro/kindli/pkg/config"
@@ -112,6 +113,29 @@ func Exists(name, vmName string) bool {
 	}
 
 	return ok
+}
+
+func List(vmName string) error {
+	clusters, err := models.ListCluster()
+	if err != nil {
+		return fmt.Errorf("failed to list clusters: %w", err)
+	}
+
+	if len(clusters) == 0 {
+		logrus.Warn("No clusters found - create a cluster with `kindli create`")
+		return nil
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 4, 8, 4, ' ', 0)
+	fmt.Fprintln(w, "NAME\tVMNAME")
+
+	for _, c := range clusters {
+		if c.VM == vmName || vmName == "" {
+			fmt.Fprintf(w, "%s\t%s\n", c.Name, c.VM)
+		}
+	}
+
+	return w.Flush()
 }
 
 func createKindCluster(name, vmName string, userKindCfg map[string]interface{}) error {
