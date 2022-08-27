@@ -5,12 +5,12 @@ import (
 	_ "embed"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 	"github.com/utkarsh-pro/kindli/pkg/config"
+	"github.com/utkarsh-pro/kindli/pkg/kubeconfig"
 	"github.com/utkarsh-pro/kindli/pkg/metallb"
 	"github.com/utkarsh-pro/kindli/pkg/models"
 	"github.com/utkarsh-pro/kindli/pkg/sh"
@@ -55,8 +55,11 @@ func Create(cfgPath string, cfg CreateConfig) error {
 
 	// Check if the instance with same name exists or not
 	if Exists(name, cfg.VMName) {
-		logrus.Warn("instance with name \"%s\" already exists: skipping cluster creation", name)
+		logrus.Warn("instance already exists: skipping cluster creation")
 		logrus.Warn("skipped cluster creation - proceed with metallb configuration")
+		if err := kubeconfig.SetCurrentContext(kindifyClusterName(name)); err != nil {
+			return fmt.Errorf("failed to set kubeconfig context: %w", err)
+		}
 
 		if err := metallb.Install(name); err != nil {
 			return fmt.Errorf("failed to create metallb config for the kind cluster: %w", err)
@@ -185,7 +188,7 @@ func loadUserKindConfig(path string) (map[string]interface{}, error) {
 	mp := make(map[string]interface{})
 
 	if path != "" {
-		byt, err := ioutil.ReadFile(path)
+		byt, err := os.ReadFile(path)
 		if err != nil {
 			return mp, err
 		}
@@ -222,4 +225,8 @@ func createCustomKindConfig(userKindCfg map[string]interface{}) (map[string]inte
 	}
 
 	return utils.MapFromYAML(buf.Bytes())
+}
+
+func kindifyClusterName(name string) string {
+	return "kind-" + name
 }

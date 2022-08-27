@@ -193,6 +193,10 @@ func MapFromYAML(yamlByt []byte) (map[string]interface{}, error) {
 	return RecursiveCastMapStringInterfaceToMapStringInterface(data), nil
 }
 
+func MapToYAML(mp map[string]interface{}) ([]byte, error) {
+	return yaml.Marshal(mp)
+}
+
 // RecursiveCastMapStringInterfaceToMapStringInterface will convert a
 // map[string]interface{} recursively => map[string]interface{}
 func RecursiveCastMapStringInterfaceToMapStringInterface(in map[string]interface{}) map[string]interface{} {
@@ -236,7 +240,7 @@ func ConvertMapInterfaceMapString(v interface{}) interface{} {
 
 // SigIntHandler takes a handler which will be called when SIGINT is received
 func SigIntHandler(handler func()) {
-	ch := make(chan os.Signal)
+	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 	<-ch
 
