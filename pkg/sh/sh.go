@@ -8,6 +8,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func RunSilent(scmd string) error {
+	logrus.Debug("Silently running: ", scmd)
+	cmds := []string{"-c", scmd}
+
+	cmd := exec.Command("bash", cmds...)
+	return cmd.Run()
+}
+
 func Run(scmd string) error {
 	logrus.Debug("Running: ", scmd)
 	cmds := []string{"-c", scmd}

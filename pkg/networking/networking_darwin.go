@@ -42,7 +42,7 @@ func Cleanup(vmName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get IPv4 subnet prefix: %w", err)
 	}
-	if err := sh.Run(fmt.Sprintf("sudo route -nv delete -net %s %s", ipv4Subnetprefix, limaVMIPv4)); err != nil {
+	if err := sh.RunSilent(fmt.Sprintf("sudo route -nv delete -net %s %s", ipv4Subnetprefix, limaVMIPv4)); err != nil {
 		return fmt.Errorf("failed to cleanup route from system to VM: %s", err)
 	}
 
@@ -52,7 +52,7 @@ func Cleanup(vmName string) error {
 		if err != nil {
 			return fmt.Errorf("failed to get IPv6 subnet prefix: %w", err)
 		}
-		if err := sh.Run(fmt.Sprintf("sudo route -nv delete -inet6 %s:: %s", ipv6Subnetprefix, limaVMIPv6)); err != nil {
+		if err := sh.RunSilent(fmt.Sprintf("sudo route -nv delete -inet6 %s:: %s", ipv6Subnetprefix, limaVMIPv6)); err != nil {
 			return fmt.Errorf("failed to cleanup route from system to VM: %s", err)
 		}
 	}
@@ -75,7 +75,7 @@ func setupPacketRoutingInsideVM(vmName string) error {
 		hostIf,
 		trim(kindIf),
 	)
-	if err := sh.Run(cmd); err != nil {
+	if err := sh.RunSilent(cmd); err != nil {
 		return fmt.Errorf("failed to setup route from VM network interface to kind network interface: %w", err)
 	}
 
@@ -94,7 +94,7 @@ func setupPacketRoutingOnHost(vmName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get IPv4 subnet prefix: %w", err)
 	}
-	if err := sh.Run(fmt.Sprintf("sudo route -nv add -net %s %s", ipv4Subnetprefix, limaVMIPv4)); err != nil {
+	if err := sh.RunSilent(fmt.Sprintf("sudo route -nv add -net %s %s", ipv4Subnetprefix, limaVMIPv4)); err != nil {
 		return fmt.Errorf("failed to setup route from system to VM: %s", err)
 	}
 
@@ -105,7 +105,7 @@ func setupPacketRoutingOnHost(vmName string) error {
 		if err != nil {
 			return fmt.Errorf("failed to get IPv6 subnet prefix: %w", err)
 		}
-		if err := sh.Run(fmt.Sprintf("sudo route -nv add -inet6 %s:: %s", ipv6Subnetprefix, limaVMIPv6)); err != nil {
+		if err := sh.RunSilent(fmt.Sprintf("sudo route -nv add -inet6 %s:: %s", ipv6Subnetprefix, limaVMIPv6)); err != nil {
 			return fmt.Errorf("failed to setup route from system to VM: %s", err)
 		}
 	}

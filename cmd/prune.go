@@ -81,7 +81,7 @@ Prune process will perform the following operations:
 		cleanLima, err := cmd.Flags().GetBool("clean-lima")
 		utils.ExitIfNotNil(err)
 		if cleanLima {
-			if err := sh.Run("limactl prune"); err != nil {
+			if err := sh.RunSilent("limactl prune"); err != nil {
 				logrus.Error("Failed to remove lima cache: ", err)
 			}
 		}

@@ -10,18 +10,18 @@ import (
 
 // CreateContext will create a new docker context
 func CreateContext(name, dockerHost string) error {
-	return sh.Run(fmt.Sprintf("docker context create %s --docker %s", name, dockerHost))
+	return sh.RunSilent(fmt.Sprintf("docker context create %s --docker %s", name, dockerHost))
 }
 
 // DeleteContext deletes a docker context
 func DeleteContext(name string) error {
-	return sh.Run(fmt.Sprintf("docker context delete %s", name))
+	return sh.RunSilent(fmt.Sprintf("docker context delete %s", name))
 }
 
 // UseContext sets the given context as the default context
 func UseContext(name string) error {
 	os.Setenv("DOCKER_CONTEXT", name)
-	return sh.Run(fmt.Sprintf("docker context use %s", name))
+	return sh.RunSilent(fmt.Sprintf("docker context use %s", name))
 }
 
 // ExistsContext returns true if the given context already exists
