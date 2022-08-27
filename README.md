@@ -331,7 +331,7 @@ Global Flags:
 
 ```
 $ kindli docker-env --vm-name <vm-name>
-docker-env sets the docker context of the given cluster
+docker-env sets the docker context of the given VM
 
 Usage:
   kindli docker-env [flags]

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,7 +24,7 @@ import (
 // DockerEnvCmd represents docker command
 var DockerEnvCmd = &cobra.Command{
 	Use:   "docker-env",
-	Short: "docker-env sets the docker context of the given cluster",
+	Short: "docker-env sets the docker context of the given VM",
 	Run: func(cmd *cobra.Command, args []string) {
 		name, err := cmd.Flags().GetString("vm-name")
 		utils.ExitIfNotNil(err)
