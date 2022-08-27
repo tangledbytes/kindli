@@ -9,6 +9,12 @@ builds:
     goarch:
       - amd64
       - arm64
+    overrides:
+      - goos: darwin
+        goarch: arm64
+        env:
+          - CC=arm-linux-gnueabihf-gcc
+          - CXX=arm-linux-gnueabihf-g++
 archives:
   - replacements:
       darwin: Darwin
