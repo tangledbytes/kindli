@@ -16,24 +16,24 @@ limitations under the License.
 package vm
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
+	"github.com/utkarsh-pro/kindli/pkg/sh"
+	"github.com/utkarsh-pro/kindli/pkg/utils"
 )
 
-// VMCmd represents the preq command
-var VMCmd = &cobra.Command{
-	Use:   "vm",
-	Short: "Commands for managing lifecycle of kindli virtual machine",
+// EditCmd represents the edit command
+var EditCmd = &cobra.Command{
+	Use:   "edit",
+	Short: "Edit Kindli VM",
+	Run: func(cmd *cobra.Command, args []string) {
+		name, err := cmd.Flags().GetString("vm-name")
+		utils.ExitIfNotNil(err)
+		utils.ExitIfNotNil(RunEdit(name))
+	},
 }
 
-func init() {
-	VMCmd.AddCommand(
-		StartCmd,
-		StopCmd,
-		DeleteCmd,
-		RestartCmd,
-		StatusCmd,
-		ShellCmd,
-		ListCmd,
-		EditCmd,
-	)
+func RunEdit(name string) error {
+	return sh.Run(fmt.Sprintf("limactl edit %s", name))
 }
