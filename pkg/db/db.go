@@ -20,7 +20,7 @@ func Setup(path string) {
 	}
 
 	var err error
-	db, err = sql.Open("sqlite3", path)
+	db, err = sql.Open("sqlite", path)
 	utils.ExitIfNotNil(err)
 	db.SetMaxOpenConns(1)
 
