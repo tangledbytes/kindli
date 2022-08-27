@@ -343,3 +343,38 @@ Global Flags:
       --cluster-name string   Name of the cluster (default "kindli")
       --vm-name string        Name of the VM (default "kindli")
 ```
+
+## FAQ
+
+<details>
+  <summary>
+    I deleted one of my cluster: How to set kubernetes context to my another cluster?
+  </summary>
+
+  Running `kindli create --vm-name <name> --cluster-name <desired-cluster>` again will set the kubeneretes context to the given cluster.
+</details>
+
+<details>
+  <summary>
+    Can I setup E2E networking simultaneously to all of my VMs?
+  </summary>
+
+  Kind of. Theoretically, you can setup E2E networking simultaneously to all of your VMs however this flow is **not** tested.
+</details>
+
+<details>
+  <summary>
+    How do I use docker daemon of another VM?
+  </summary>
+
+  `kindli` uses docker contexts to switch between daemons. If you want to point docker client to one of the kindli VMs, just run `kindli docker-env --vm-name <vm-name>`
+</details>
+
+
+<details>
+  <summary>
+    How do I clear everything?
+  </summary>
+
+  Just run `kindli prune`. If you want to just prune one VM then provide the name of the VM via `--vm-name`.
+</details>
