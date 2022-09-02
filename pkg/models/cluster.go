@@ -1,7 +1,10 @@
 package models
 
 import (
+	"os"
+
 	"github.com/utkarsh-pro/kindli/pkg/db"
+	"github.com/utkarsh-pro/kindli/pkg/utils"
 )
 
 type Cluster struct {
@@ -115,4 +118,17 @@ func (cluster *Cluster) AssignID() error {
 	}
 
 	return nil
+}
+
+func (cluster *Cluster) LoadConfigFromDisk() ([]byte, error) {
+	return os.ReadFile(cluster.KindConfigPath)
+}
+
+func (cluster *Cluster) LoadConfigAsYAMLFromDisk() (map[string]interface{}, error) {
+	config, err := cluster.LoadConfigFromDisk()
+	if err != nil {
+		return nil, err
+	}
+
+	return utils.MapFromYAML(config)
 }

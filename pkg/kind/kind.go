@@ -20,9 +20,8 @@ import (
 )
 
 var (
-	instancesDirName    = "kind"
-	instanceDirPath     = ""
-	defaultInstanceName = "kindli"
+	instancesDirName = "kind"
+	instanceDirPath  = ""
 
 	//go:embed kind.template
 	kindTemplate string
@@ -49,7 +48,7 @@ func Create(cfgPath string, cfg CreateConfig) error {
 	}
 
 	// Get the name of the user's kind config => Also a sanity test for the config
-	name, err := getUserKindCfgName(userKindCfg, cfg.Name)
+	name, err := getSetUserKindCfgName(userKindCfg, cfg.Name)
 	if err != nil {
 		return err
 	}
@@ -127,11 +126,60 @@ func List(vmName string) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 4, 8, 4, ' ', 0)
-	fmt.Fprintln(w, "NAME\tVMNAME")
+	fmt.Fprintln(w, "NAME\tVMNAME\tSERVICES SUBNET\tPODS SUBNET\tIP FAMILY\tLOADBALANCER(IPv4)")
 
 	for _, c := range clusters {
 		if c.VM == vmName || vmName == "" {
-			fmt.Fprintf(w, "%s\t%s\n", c.Name, c.VM)
+			svcSubnet := "UNKNOWN"
+			podSubnet := "UNKNOWN"
+			ipFamily := "UNKNOWN"
+			lbIPv4 := "UNKNOWN"
+
+			cfg, err := c.LoadConfigAsYAMLFromDisk()
+			if err != nil {
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", c.Name, c.VM, svcSubnet, podSubnet, ipFamily, lbIPv4)
+				continue
+			}
+
+			svcSubnetUncasted, ok := utils.MapGet(cfg, "networking", "serviceSubnet")
+			if ok {
+				svcSubnetCasted, ok := svcSubnetUncasted.(string)
+				if ok {
+					svcSubnet = svcSubnetCasted
+				}
+			}
+
+			podSubnetUncasted, ok := utils.MapGet(cfg, "networking", "podSubnet")
+			if ok {
+				podSubnetCasted, ok := podSubnetUncasted.(string)
+				if ok {
+					podSubnet = podSubnetCasted
+				}
+			}
+
+			ipFamilyUncasted, ok := utils.MapGet(cfg, "networking", "ipFamily")
+			if ok {
+				ipFamilyCasted, ok := ipFamilyUncasted.(string)
+				if ok {
+					ipFamily = ipFamilyCasted
+				}
+			}
+
+			mcfg, err := metallb.LoadConfigFromDisk(c.Name)
+			if err != nil {
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", c.Name, c.VM, svcSubnet, podSubnet, ipFamily, lbIPv4)
+				continue
+			}
+
+			lbIPv4Uncasted, ok := utils.MapGet(mcfg, "spec", "addresses", "0")
+			if ok {
+				lbIPv4Casted, ok := lbIPv4Uncasted.(string)
+				if ok {
+					lbIPv4 = lbIPv4Casted
+				}
+			}
+
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", c.Name, c.VM, svcSubnet, podSubnet, ipFamily, lbIPv4)
 		}
 	}
 
@@ -171,23 +219,9 @@ func createKindCluster(name, vmName string, userKindCfg map[string]interface{}) 
 	return nil
 }
 
-func getUserKindCfgName(userKindCfg map[string]interface{}, customName string) (string, error) {
-	name, ok := utils.MapGet(userKindCfg, "name")
-	if !ok {
-		if customName == "" {
-			customName = defaultInstanceName
-		}
-
-		userKindCfg["name"] = customName
-		return customName, nil
-	}
-
-	nameStr, ok := name.(string)
-	if !ok {
-		return "", fmt.Errorf("invalid name")
-	}
-
-	return nameStr, nil
+func getSetUserKindCfgName(userKindCfg map[string]interface{}, customName string) (string, error) {
+	userKindCfg["name"] = customName
+	return userKindCfg["name"].(string), nil
 }
 
 func persistAlteredConfig(name string, userKindCfg map[string]interface{}) (string, error) {

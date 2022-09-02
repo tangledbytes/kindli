@@ -70,7 +70,7 @@ func MapGet(mp map[string]interface{}, key ...string) (interface{}, bool) {
 
 		valMapM, ok := v[keyNum].(map[string]interface{})
 		if !ok {
-			return mp, false
+			return v[keyNum], true
 		}
 
 		return MapGet(valMapM, key[2:]...)
@@ -96,12 +96,10 @@ func MapGet(mp map[string]interface{}, key ...string) (interface{}, bool) {
 	return mp, true
 }
 
-// MapSet takes in the map that needs to be manipulated, the value that needs to
-// be assgined to be assigned and the key - each key goes one level deeper in the map
-func MapSet(mp map[string]interface{}, value interface{}, key ...string) {
-	var _mapSet func(map[string]interface{}, interface{}, ...string) map[string]interface{}
+func MapSetFn(mp map[string]interface{}, fn func(interface{}) (interface{}, bool), key ...string) {
+	var _mapSet func(map[string]interface{}, func(interface{}) (interface{}, bool), ...string) map[string]interface{}
 
-	_mapSet = func(mp map[string]interface{}, value interface{}, key ...string) map[string]interface{} {
+	_mapSet = func(mp map[string]interface{}, value func(interface{}) (interface{}, bool), key ...string) map[string]interface{} {
 		if mp == nil {
 			return nil
 		}
@@ -111,7 +109,11 @@ func MapSet(mp map[string]interface{}, value interface{}, key ...string) {
 		}
 
 		if len(key) == 1 {
-			mp[key[0]] = value
+			new, ok := fn(mp[key[0]])
+			if ok {
+				mp[key[0]] = new
+			}
+
 			return mp
 		}
 
@@ -179,7 +181,13 @@ func MapSet(mp map[string]interface{}, value interface{}, key ...string) {
 		return mp
 	}
 
-	_mapSet(mp, value, key...)
+	_mapSet(mp, fn, key...)
+}
+
+// MapSet takes in the map that needs to be manipulated, the value that needs to
+// be assgined to be assigned and the key - each key goes one level deeper in the map
+func MapSet(mp map[string]interface{}, value interface{}, key ...string) {
+	MapSetFn(mp, func(interface{}) (interface{}, bool) { return value, true }, key...)
 }
 
 func MapFromYAML(yamlByt []byte) (map[string]interface{}, error) {
