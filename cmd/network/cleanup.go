@@ -16,16 +16,23 @@ limitations under the License.
 
 package network
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+	"github.com/utkarsh-pro/kindli/pkg/networking"
+	"github.com/utkarsh-pro/kindli/pkg/utils"
+)
 
-var NetworkCmd = &cobra.Command{
-	Use:   "network",
-	Short: "setup e2e networking with cluster",
+var CleanupCmd = &cobra.Command{
+	Use:   "cleanup",
+	Short: "cleanup e2e networking with cluster",
+	Run: func(cmd *cobra.Command, args []string) {
+		name, err := cmd.Flags().GetString("vm-name")
+		utils.ExitIfNotNil(err)
+
+		utils.ExitIfNotNil(RunCleanup(name))
+	},
 }
 
-func init() {
-	NetworkCmd.AddCommand(
-		SetupCmd,
-		CleanupCmd,
-	)
+func RunCleanup(name string) error {
+	return networking.Cleanup(name)
 }
