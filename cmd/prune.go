@@ -59,6 +59,7 @@ Prune process will perform the following operations:
 		vms, err := vm.RunList()
 		utils.ExitIfNotNil(err)
 
+		failure := false
 		for _, name := range vms {
 			// Stop the running VM
 			if err := vm.RunStop(name); err != nil {
@@ -68,7 +69,12 @@ Prune process will perform the following operations:
 			// Delete the VM
 			if err := vm.RunDelete(name); err != nil {
 				logrus.Error("Failed to delete VM: ", err)
+				failure = true
 			}
+		}
+
+		if failure {
+			logrus.Fatal("Failure detected in deleting some of the VMs... Skipping further cleanup")
 		}
 
 		// Cleanup dirs
