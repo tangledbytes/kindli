@@ -45,7 +45,7 @@ provision:
 
       # Force this IP on the lima0 interface
       # ip a add 192.168.105.1/24 dev lima0
-      ip a add {{or .VMIPv4 "192.168.105.23"}} dev lima0
+      ip a add {{or .VMIPv4 "192.168.105.23"}}/24 dev lima0
 
       # Install Docker on the VM
       curl -fsSL https://get.docker.com | sh

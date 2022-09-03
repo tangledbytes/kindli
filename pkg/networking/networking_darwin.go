@@ -13,13 +13,19 @@ import (
 const disableIPv6 = true
 
 func Setup(vmName string) error {
+	logrus.Info("Setting up inside the VM...")
 	if err := setupPacketRoutingInsideVM(vmName); err != nil {
 		return fmt.Errorf("failed to setup packet routing inside VM: %s", err)
 	}
+	logrus.Info("✅ Completed setup inside the VM")
 
+	logrus.Info("Setting up on the host...")
 	if err := setupPacketRoutingOnHost(vmName); err != nil {
 		return fmt.Errorf("failed to setup packet routing on host: %s", err)
 	}
+	logrus.Info("✅ Completed setup on the host")
+
+	logrus.Info("Waiting for SIGINT (Ctr + C) to cleanup...")
 
 	utils.SigIntHandler(func() {
 		if err := Cleanup(vmName); err != nil {
@@ -57,6 +63,7 @@ func Cleanup(vmName string) error {
 		}
 	}
 
+	logrus.Info("✅ Completed cleanup")
 	return nil
 }
 
@@ -69,14 +76,19 @@ func setupPacketRoutingInsideVM(vmName string) error {
 	hostIf := "lima0"
 
 	// Forward all the packets that are coming from the host interface to the kind network interface
-	cmd := fmt.Sprintf(
-		"limactl shell %s -- sudo iptables -t filter -A FORWARD -4 -p tcp -s 192.168.105.1 -d 172.18.0.0/16 -j ACCEPT -i %s -o %s",
-		vmName,
-		hostIf,
-		trim(kindIf),
-	)
-	if err := sh.RunSilent(cmd); err != nil {
-		return fmt.Errorf("failed to setup route from VM network interface to kind network interface: %w", err)
+	rule := NewIPTable().
+		Sudo().
+		Table("filter").
+		Specification(fmt.Sprintf(
+			"-4 -p tcp -s 192.168.105.1 -d 172.18.0.0/16 -j ACCEPT -i %s -o %s",
+			hostIf,
+			trim(kindIf),
+		))
+
+	if err := sh.Run(fmt.Sprintf("limactl shell %s -- %s", vmName, rule.Command("-C FORWARD").String())); err != nil {
+		if err := sh.Run(fmt.Sprintf("limactl shell %s -- %s", vmName, rule.Command("-A FORWARD").String())); err != nil {
+			return fmt.Errorf("failed to setup route from VM network interface to kind network interface: %w", err)
+		}
 	}
 
 	return nil
