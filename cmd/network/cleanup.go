@@ -34,5 +34,9 @@ var CleanupCmd = &cobra.Command{
 }
 
 func RunCleanup(name string) error {
+	if !warnUser() {
+		return nil
+	}
+
 	return networking.Cleanup(name)
 }

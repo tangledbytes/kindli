@@ -17,6 +17,9 @@ limitations under the License.
 package network
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/utkarsh-pro/kindli/pkg/networking"
 	"github.com/utkarsh-pro/kindli/pkg/utils"
@@ -34,5 +37,18 @@ var SetupCmd = &cobra.Command{
 }
 
 func RunSetup(name string) error {
+	if !warnUser() {
+		return nil
+	}
+
 	return networking.Setup(name)
+}
+
+func warnUser() bool {
+	var input string
+
+	fmt.Print("⚠️  Warning: Managing up routes requires privilege escalation and would require root password. Do you want to continue? [y/n]: ")
+	fmt.Scanln(&input)
+
+	return strings.ToLower(input) == "y"
 }
