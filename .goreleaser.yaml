@@ -26,6 +26,12 @@ brews:
     commit_author:
       name: utkarsh-pro
       email: utkarsh@sagacious.dev
+    dependencies:
+      - name: git
+      - name: make
+      - name: automake
+      - name: limactl
+      - name: autoconf
 checksum:
   name_template: 'checksums.txt'
 snapshot:
