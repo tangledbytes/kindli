@@ -1,17 +1,10 @@
 images:
-  # Try to use release-yyyyMMdd image if available. Note that release-yyyyMMdd will be removed after several months.
-  - location: "https://cloud-images.ubuntu.com/releases/22.04/release-20220712/ubuntu-22.04-server-cloudimg-amd64.img"
-    arch: "x86_64"
-    digest: "sha256:86481acb9dbd62e3e93b49eb19a40c66c8aa07f07eff10af20ddf355a317e29f"
-  - location: "https://cloud-images.ubuntu.com/releases/22.04/release-20220712/ubuntu-22.04-server-cloudimg-arm64.img"
-    arch: "aarch64"
-    digest: "sha256:e1ce033239f0038dca5ef09e582762ba0d0dfdedc1d329bc51bb0e9f5057af9d"
-  # Fallback to the latest release image.
-  # Hint: run `limactl prune` to invalidate the cache
-  - location: "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img"
-    arch: "x86_64"
-  - location: "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-arm64.img"
-    arch: "aarch64"
+- location: "https://cloud.debian.org/images/cloud/bullseye/20220816-1109/debian-11-generic-amd64-20220816-1109.qcow2"
+  arch: "x86_64"
+  digest: "sha512:934e1a177ad92ce5171b6d4d90796541ccad1bbdaf26a310065bbb00374e82d8d8b44e95f574dbd54e90c9edbeb735d4b5922aba6107fc821718dedbc0183961"
+- location: "https://cloud.debian.org/images/cloud/bullseye/20220816-1109/debian-11-generic-arm64-20220816-1109.qcow2"
+  arch: "aarch64"
+  digest: "sha512:4ba22e50d2603e113a045583f2e7d31cf4db1a1c246a1a62703b4f16892e479d9bf8eb8e82499c1e78455735e4ef6cdf0dc20513c279115c1e80f8a9c3f516b2"
 
 cpus: {{or .CPU 4}}
 memory: "{{or .Memory "16GiB"}}"
@@ -37,23 +30,42 @@ provision:
       #!/bin/bash
       set -eux -o pipefail
 
+      function enable_fips() {
+        dracut -f
+
+        local arg=GRUB_CMDLINE_LINUX_DEFAULT
+        local grubl=/etc/default/grub
+        local CUR=$(cat $grubl | grep "$arg" | sed "s/$arg=//g" | tr -d '"')
+        sed -i "s/^$arg=.*/$arg=$(echo \"$CUR fips=1\")/g" "$grubl"
+
+        update-grub
+      }
+
       export DEBIAN_FRONTEND=noninteractive
+
+      # Install general utilties
+      apt-get install -y net-tools traceroute arping jq dracut-core
+      
+      {{if .FIPS}}
+      # Check if FIPS is disabled then enable it
+      if [ "$(cat /proc/sys/crypto/fips_enabled)" = "0" ]; then
+        enable_fips
+      fi
+      {{end}}
 
       # https://kind.sigs.k8s.io/docs/user/known-issues/#pod-errors-due-to-too-many-open-files
       sysctl fs.inotify.max_user_watches=524288
       sysctl fs.inotify.max_user_instances=512
 
       # Force this IP on the lima0 interface
-      # ip a add 192.168.105.1/24 dev lima0
-      ip a add {{or .VMIPv4 "192.168.105.23"}}/24 dev lima0
+      ip a add {{or .VMIPv4 "192.168.105.23"}}/24 dev lima0 || true
 
       # Install Docker on the VM
       curl -fsSL https://get.docker.com | sh
       groupadd docker || true
       usermod -aG docker {{.user}}
 
-      apt-get install -y net-tools traceroute arping jq
-
+      # Enable cross architecture images
       nerdctl run --privileged --rm tonistiigi/binfmt --install all
 probes:
   - script: |

@@ -12,6 +12,7 @@ import (
 
 var (
 	configDir = ""
+	userHome  = ""
 )
 
 func init() {
@@ -25,6 +26,7 @@ func SetupDir() {
 	home, err := os.UserHomeDir()
 	utils.ExitIfNotNil(err)
 
+	userHome = home
 	configDir = filepath.Join(home, ".kindli")
 
 	utils.ExitIfNotNil(os.MkdirAll(configDir, 0777))
@@ -41,6 +43,11 @@ func CleanupDir() error {
 // Dir returns path to the config directory
 func Dir() string {
 	return configDir
+}
+
+// Home returns the path to the home directory
+func Home() string {
+	return userHome
 }
 
 func Logger() {

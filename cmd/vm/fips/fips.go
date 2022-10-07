@@ -13,29 +13,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package vm
+package fips
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/utkarsh-pro/kindli/cmd/vm/fips"
 )
 
-// VMCmd represents the preq command
-var VMCmd = &cobra.Command{
-	Use:   "vm",
-	Short: "Commands for managing lifecycle of kindli virtual machine",
+// FipsCmd represents the fips command
+var FipsCmd = &cobra.Command{
+	Use:   "fips",
+	Short: "Commands for managing FIPS in the VM",
 }
 
 func init() {
-	VMCmd.AddCommand(
-		StartCmd,
-		StopCmd,
-		DeleteCmd,
-		RestartCmd,
-		StatusCmd,
-		ShellCmd,
-		ListCmd,
-		EditCmd,
-		fips.FipsCmd,
+	FipsCmd.AddCommand(
+		CheckCmd,
 	)
 }
