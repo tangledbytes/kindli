@@ -195,6 +195,22 @@ func List(vmName string) error {
 	return w.Flush()
 }
 
+func PureList(vmName string) ([]string, error) {
+	clusters, err := models.ListCluster()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list clusters: %w", err)
+	}
+
+	var names []string
+	for _, c := range clusters {
+		if c.VM == vmName || vmName == "" {
+			names = append(names, c.Name)
+		}
+	}
+
+	return names, nil
+}
+
 func createKindCluster(name, vmName string, userKindCfg map[string]interface{}) error {
 	// Save the new instance in the store
 	cluster := models.NewCluster(name, "", vmName)
