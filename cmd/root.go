@@ -17,12 +17,14 @@ package cmd
 
 import (
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/utkarsh-pro/kindli/cmd/image"
 	"github.com/utkarsh-pro/kindli/cmd/network"
 	"github.com/utkarsh-pro/kindli/cmd/preq"
 	"github.com/utkarsh-pro/kindli/cmd/vm"
+	"github.com/utkarsh-pro/kindli/pkg/kind"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -53,5 +55,49 @@ func init() {
 	)
 
 	RootCmd.PersistentFlags().String("vm-name", "kindli", "Name of the VM")
+	RootCmd.RegisterFlagCompletionFunc(
+		"vm-name",
+		func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			list, err := vm.RunList()
+			if err != nil {
+				return []string{}, cobra.ShellCompDirectiveNoFileComp
+			}
+
+			final := []string{}
+			for _, v := range list {
+				if strings.HasPrefix(v, toComplete) {
+					final = append(final, v)
+				}
+			}
+
+			return final, cobra.ShellCompDirectiveNoFileComp
+		},
+	)
+
 	RootCmd.PersistentFlags().String("cluster-name", "kindli", "Name of the cluster")
+	RootCmd.RegisterFlagCompletionFunc(
+		"cluster-name",
+		func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			vm, _ := cmd.Flags().GetString("vm-name")
+			all, _ := cmd.Flags().GetBool("all")
+
+			if all {
+				vm = ""
+			}
+
+			list, err := kind.PureList(vm)
+			if err != nil {
+				return []string{}, cobra.ShellCompDirectiveNoFileComp
+			}
+
+			final := []string{}
+			for _, v := range list {
+				if strings.HasPrefix(v, toComplete) {
+					final = append(final, v)
+				}
+			}
+
+			return final, cobra.ShellCompDirectiveNoFileComp
+		},
+	)
 }
