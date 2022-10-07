@@ -30,7 +30,7 @@ brews:
       - name: git
       - name: make
       - name: automake
-      - name: limactl
+      - name: lima
       - name: autoconf
 checksum:
   name_template: 'checksums.txt'
