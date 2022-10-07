@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/sirupsen/logrus"
+	"github.com/utkarsh-pro/kindli/pkg/sh"
 	"gopkg.in/yaml.v2"
 )
 
@@ -253,4 +254,13 @@ func SigIntHandler(handler func()) {
 	<-ch
 
 	handler()
+}
+
+// ForceLink forcefully hard links 2 files together
+func ForceLink(file1, file2 string) error {
+	if err := sh.Run(fmt.Sprintf("ln -f %s %s", file1, file2)); err != nil {
+		return fmt.Errorf("failed to link %s to %s: %v", file1, file2, err)
+	}
+
+	return nil
 }

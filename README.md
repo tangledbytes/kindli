@@ -60,6 +60,7 @@ Flags:
       --arch string         VM architecture
       --cpu int             specify number of cpu assigned to VM (default 4)
       --disk string         specify disk space assigned to the VM (default "100GiB")
+      --fips                enable FIPS mode for the VM
   -h, --help                help for init
       --mem string          specify memory to be assigned to VM (default "16GiB")
       --mount strings       specify mounts in form of <PATH>:rw to make the mount available for read/write or in form of <PATH>:ro to make the mount available only for reading
@@ -174,6 +175,7 @@ Flags:
       --arch string     VM architecture
       --cpu int         specify number of cpu assigned to VM (default 4)
       --disk string     specify disk space assigned to the VM (default "100GiB")
+      --fips            enable FIPS mode for the VM
   -h, --help            help for start
       --mem string      specify memory to be assigned to VM (default "16GiB")
       --mount strings   specify mounts in form of <PATH>:rw to make the mount available for read/write or in form of <PATH>:ro to make the mount available only for reading

@@ -15,10 +15,15 @@ import (
 	"github.com/utkarsh-pro/kindli/pkg/config"
 	"github.com/utkarsh-pro/kindli/pkg/models"
 	"github.com/utkarsh-pro/kindli/pkg/sh"
+	"github.com/utkarsh-pro/kindli/pkg/utils"
 )
 
 func vmFilePath(vmName string) string {
 	return filepath.Join(config.Dir(), fmt.Sprintf("%s.yaml", vmName))
+}
+
+func limaSourcePath(vmName string) string {
+	return filepath.Join(config.Home(), ".lima", vmName)
 }
 
 func defaultDockerPort() int {
@@ -81,6 +86,12 @@ func Start(overrides map[string]interface{}, skipIfExists bool, vmName string) e
 
 	if err := sh.Run("limactl start --tty=false " + vm.LimaConfigPath); err != nil {
 		return fmt.Errorf("failed to start VM: %w", err)
+	}
+
+	// Link the configs
+	if err := utils.ForceLink(filepath.Join(limaSourcePath(vm.Name), "lima.yaml"), vm.LimaConfigPath); err != nil {
+		logrus.Warn("failed to link lima config files")
+		logrus.Debug("failed to link error: ", err)
 	}
 
 	return nil
@@ -206,6 +217,9 @@ func createLimaVMConfig(overrides map[string]interface{}, vm *models.VM) error {
 	overrides["dockerPort"] = vm.DockerPort
 
 	vmID, err := models.GetNextVMID() // This ID will be assigned to the VM automatically
+	if err != nil {
+		return fmt.Errorf("failed to generate VM ID: %w", err)
+	}
 	overrides["VMIPv4"] = models.GetVMIPv4(vmID)
 	overrides["VMIPv6"] = models.GetVMIPv6(vmID)
 

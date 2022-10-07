@@ -17,6 +17,7 @@ package vm
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/utkarsh-pro/kindli/cmd/vm/fips"
 )
 
 // VMCmd represents the preq command
@@ -35,5 +36,6 @@ func init() {
 		ShellCmd,
 		ListCmd,
 		EditCmd,
+		fips.FipsCmd,
 	)
 }

@@ -25,11 +25,12 @@ import (
 )
 
 var (
-	cpu    int
-	mem    string
-	disk   string
-	arch   string
-	mounts []string
+	cpu      int
+	mem      string
+	disk     string
+	arch     string
+	mounts   []string
+	fipsFlag bool
 )
 
 // StartCmd represents the start command
@@ -59,6 +60,7 @@ func init() {
 	StartCmd.Flags().StringVar(&disk, "disk", "100GiB", "specify disk space assigned to the VM")
 	StartCmd.Flags().StringVar(&arch, "arch", "", "VM architecture")
 	StartCmd.Flags().StringSliceVar(&mounts, "mount", nil, "specify mounts in form of <PATH>:rw to make the mount available for read/write or in form of <PATH>:ro to make the mount available only for reading")
+	StartCmd.Flags().BoolVar(&fipsFlag, "fips", false, "enable FIPS mode for the VM")
 }
 
 func RunStart(name string) error {
@@ -71,6 +73,7 @@ func createOverrides() map[string]interface{} {
 		"Memory": mem,
 		"Disk":   disk,
 		"Arch":   arch,
+		"FIPS":   fipsFlag,
 	}
 
 	parsedMounts, err := parseMounts(mounts)

@@ -13,30 +13,38 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package vm
+package fips
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/utkarsh-pro/kindli/pkg/utils"
 	"github.com/utkarsh-pro/kindli/pkg/vm"
 )
 
-// ListCmd represents the list command
-var ListCmd = &cobra.Command{
-	Use:        "list",
-	Short:      "Prints the list of VMs",
-	Deprecated: "This command is deprecated use `kindli vm status -A` instead",
+// CheckCmd represents the check command
+var CheckCmd = &cobra.Command{
+	Use:   "check",
+	Short: "Check if FIPS is enabled in the VM",
 	Run: func(cmd *cobra.Command, args []string) {
-		vms, err := RunList()
+		name, err := cmd.Flags().GetString("vm-name")
 		utils.ExitIfNotNil(err)
-
-		fmt.Println(strings.Join(vms, "\n"))
+		utils.ExitIfNotNil(RunCheck(name))
 	},
 }
 
-func RunList() ([]string, error) {
-	return vm.List()
+func RunCheck(name string) error {
+	status, err := vm.FipsCheck(name)
+	if err != nil {
+		return err
+	}
+
+	if status {
+		fmt.Println("FIPS is enabled in the VM")
+		return nil
+	}
+
+	fmt.Println("FIPS is not enabled in the VM")
+	return nil
 }
