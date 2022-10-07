@@ -16,6 +16,7 @@ import (
 	"github.com/utkarsh-pro/kindli/pkg/models"
 	"github.com/utkarsh-pro/kindli/pkg/sh"
 	"github.com/utkarsh-pro/kindli/pkg/utils"
+	"github.com/utkarsh-pro/kindli/pkg/vm"
 	"gopkg.in/yaml.v2"
 )
 
@@ -126,7 +127,7 @@ func List(vmName string) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 4, 8, 4, ' ', 0)
-	fmt.Fprintln(w, "NAME\tVMNAME\tSERVICES SUBNET\tPODS SUBNET\tIP FAMILY\tLOADBALANCER(IPv4)")
+	fmt.Fprintln(w, "NAME\tVMNAME\tSERVICES SUBNET\tPODS SUBNET\tIP FAMILY\tLOADBALANCER(IPv4)\tFIPS")
 
 	for _, c := range clusters {
 		if c.VM == vmName || vmName == "" {
@@ -134,10 +135,11 @@ func List(vmName string) error {
 			podSubnet := "UNKNOWN"
 			ipFamily := "UNKNOWN"
 			lbIPv4 := "UNKNOWN"
+			fips := "UNKNOWN"
 
 			cfg, err := c.LoadConfigAsYAMLFromDisk()
 			if err != nil {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", c.Name, c.VM, svcSubnet, podSubnet, ipFamily, lbIPv4)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", c.Name, c.VM, svcSubnet, podSubnet, ipFamily, lbIPv4, fips)
 				continue
 			}
 
@@ -179,7 +181,14 @@ func List(vmName string) error {
 				}
 			}
 
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", c.Name, c.VM, svcSubnet, podSubnet, ipFamily, lbIPv4)
+			fipsStatus, _ := vm.FipsCheck(c.VM)
+			if fipsStatus {
+				fips = "ENABLED"
+			} else {
+				fips = "DISABLED"
+			}
+
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", c.Name, c.VM, svcSubnet, podSubnet, ipFamily, lbIPv4, fips)
 		}
 	}
 
